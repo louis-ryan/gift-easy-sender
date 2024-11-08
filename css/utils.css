@@ -1,0 +1,54 @@
+* {
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
+body {
+  overflow-x: hidden;
+  color: grey;
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 0px;
+  overflow-wrap: break-word;
+  font-size: 12px;
+}
+
+.container {
+  display: flex;
+  justify-content: center;
+}
+
+.wrapper {
+  width: 960px;
+  padding: 8px;
+}
+
+.smallwrapper {
+  width: 600px;
+  padding: 8px;
+}
+
+.gaphor {
+  width: 8px;
+}
+
+.doublegaphor {
+  width: 16px;
+}
+
+.gapver {
+  height: 8px;
+}
+
+.doublegapver {
+  height: 16px;
+}
+
+@media only screen and (max-width: 640px) {
+  .wrapper {
+    width: 960px;
+  }
+  .cardspace {
+    display: unset;
+  }
+}

@@ -1,0 +1,36 @@
+p {
+  color: grey;
+}
+
+h1 {
+  font-size: 2rem;
+  color: #143950;
+  font-family: serif;
+  font-weight: 800;
+}
+
+h2 {
+  font-size: 1.5rem;
+  color: #143950;
+}
+
+h3 {
+  font-size: 1.2rem;
+  color: #143950;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+h4 {
+  font-size: 1rem;
+  color: grey;
+}
+
+label {
+  font-size: 1.2rem;
+  color: #143950;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.error {
+  color: red;
+}

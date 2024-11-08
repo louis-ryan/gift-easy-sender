@@ -1,0 +1,30 @@
+.cardspace {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.card {
+  border: 1px solid grey;
+  padding: 16px;
+  width: 30%;
+  margin-top: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.card:hover {
+  box-shadow: 0px 0px 16px lightgrey;
+}
+
+.cardactions {
+  width: 100%;
+  display: flex;
+}
+
+@media only screen and (max-width: 640px) {
+  .card {
+    width: 100%;
+    margin-top: 16px;
+  }
+}
