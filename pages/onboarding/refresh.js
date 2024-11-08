@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+
 export default function OnboardingRefresh() {
     const [loading, setLoading] = useState(true);
 
