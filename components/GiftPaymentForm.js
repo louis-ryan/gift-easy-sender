@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 const stripePromise = loadStripe("pk_test_51QIZDoBA4OL48GP496gr6YabbIGhw1zzM4O7XhIAV52InnQp2tehgnZnRdCVRvzMCEmVI5QbIwfdIu51VcMN8utz00rDDwIK9Z");
 
 // CheckoutForm Component (Inner form component)
-const CheckoutForm = ({ recipientId, giftAmount }) => {
+const CheckoutForm = ({ recipientId, giftAmount, eventName }) => {
     const stripe = useStripe();
     const elements = useElements();
     const [loading, setLoading] = useState(false);
@@ -50,7 +50,7 @@ const CheckoutForm = ({ recipientId, giftAmount }) => {
                 elements,
                 clientSecret,
                 confirmParams: {
-                    return_url: `${window.location.origin}/payment-complete`,
+                    return_url: `${window.location.origin}/eventName/just-got-better`,
                 },
             });
 

@@ -74,6 +74,7 @@ const Note = () => {
                         <GiftPaymentForm
                             recipientId="acct_1QK0JABUsEMA9E3L"
                             giftAmount={10.00}
+                            eventName={eventName}
                         />
 
                         <div className='doublegapver' />
