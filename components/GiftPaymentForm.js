@@ -13,6 +13,8 @@ const CheckoutForm = ({ recipientId, giftAmount, eventName, giftId, eventId, get
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
 
+    console.log("gift id from comp: ", giftId)
+
     const handleSubmit = async (event) => {
         event.preventDefault();
 
@@ -111,7 +113,7 @@ const CheckoutForm = ({ recipientId, giftAmount, eventName, giftId, eventId, get
 };
 
 // Main component wrapper
-const GiftPaymentForm = ({ recipientId, giftAmount }) => {
+const GiftPaymentForm = ({ recipientId, giftAmount, eventName, giftId, eventId, getPaymentsData }) => {
     const [clientSecret, setClientSecret] = useState(null);
 
     useEffect(() => {
@@ -166,7 +168,14 @@ const GiftPaymentForm = ({ recipientId, giftAmount }) => {
                 },
             }}
         >
-            <CheckoutForm recipientId={recipientId} giftAmount={giftAmount} />
+            <CheckoutForm
+                recipientId={recipientId}
+                giftAmount={giftAmount}
+                eventName={eventName}
+                giftId={giftId}
+                eventId={eventId}
+                getPaymentsData={getPaymentsData}
+            />
         </Elements>
     );
 };

@@ -8,6 +8,7 @@ const Note = () => {
     const [event, setEvent] = useState({})
     const [wishes, setWishes] = useState([])
     const [thisWish, setThisWish] = useState({})
+    console.log("curr wish: ", thisWish._id)
 
     const router = useRouter()
 
@@ -53,12 +54,10 @@ const Note = () => {
                 <h1>{eventName}</h1>
                 <h3>{event.description}</h3>
                 <div className="cardspace">
-                    {wishes.map((wish) => {
-                        console.log("wish: ", wish)
-                        console.log("event: ", event)
+                    {wishes.map((wish, idx) => {
                         return (
                             <div
-                                key={wish._id}
+                                key={idx}
                                 className='card'
                             >
                                 <h3>{wish.title}</h3>
@@ -76,7 +75,7 @@ const Note = () => {
                     })}
                 </div>
 
-                {thisWish._id &&
+                {thisWish._id && event &&
                     <div className="card" style={{ width: "100%" }}>
 
                         <h3>{"Payment for " + thisWish.title}</h3>
@@ -85,8 +84,8 @@ const Note = () => {
                             recipientId="acct_1QK0JABUsEMA9E3L"
                             giftAmount={10.00}
                             eventName={eventName}
-                            giftId={thisWish._id.toString()}
-                            eventId={event._id.toString()}
+                            giftId={thisWish._id}
+                            eventId={event._id}
                             getPaymentsData={getPaymentsData}
                         />
 
