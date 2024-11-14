@@ -6,12 +6,22 @@ import { useState, useEffect } from 'react';
 const stripePromise = loadStripe("pk_test_51QIZDoBA4OL48GP496gr6YabbIGhw1zzM4O7XhIAV52InnQp2tehgnZnRdCVRvzMCEmVI5QbIwfdIu51VcMN8utz00rDDwIK9Z");
 
 // CheckoutForm Component (Inner form component)
-const CheckoutForm = ({ recipientId, giftAmount, eventName }) => {
+const CheckoutForm = ({ recipientId, giftAmount, eventName, giftId, eventId }) => {
     const stripe = useStripe();
     const elements = useElements();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
+
+
+
+    const getPaymentsData = async () => {
+        const res = await fetch(`https://wishlistsundayplatform.vercel.app/api/getStripePayments?eventId=${eventId}`);
+        const { data } = await res.json();
+        console.log("payments data: ", data)
+    }
+
+
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -37,6 +47,8 @@ const CheckoutForm = ({ recipientId, giftAmount, eventName }) => {
                 body: JSON.stringify({
                     amount: giftAmount,
                     recipientId: recipientId,
+                    giftId: giftId,
+                    eventId: eventId
                 }),
             });
 
@@ -50,7 +62,7 @@ const CheckoutForm = ({ recipientId, giftAmount, eventName }) => {
                 elements,
                 clientSecret,
                 confirmParams: {
-                    return_url: `${window.location.origin}/eventName/just-got-better`,
+                    return_url: `${window.location.origin}/${eventName}/just-got-better`,
                 },
             });
 
@@ -59,6 +71,8 @@ const CheckoutForm = ({ recipientId, giftAmount, eventName }) => {
             }
 
             setSuccess(true);
+            getPaymentsData()
+
         } catch (err) {
             setError(err.message);
             console.error('Payment error:', err);

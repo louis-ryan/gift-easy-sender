@@ -75,6 +75,8 @@ const Note = () => {
                             recipientId="acct_1QK0JABUsEMA9E3L"
                             giftAmount={10.00}
                             eventName={eventName}
+                            giftId={thisWish._id.toString()}
+                            eventId={event._id.toString()}
                         />
 
                         <div className='doublegapver' />
