@@ -49,6 +49,10 @@ const CheckoutForm = ({ recipientId, giftAmount }) => {
             const { error: confirmError } = await stripe.confirmPayment({
                 elements,
                 clientSecret,
+                confirmParams: {
+                    return_url: window.location.href,
+                    redirect: "if_required"
+                }
             });
 
             if (confirmError) {
