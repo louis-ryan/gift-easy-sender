@@ -8,22 +8,44 @@ const Note = () => {
     const [event, setEvent] = useState({})
     const [wishes, setWishes] = useState([])
     const [thisWish, setThisWish] = useState({})
-    console.log("curr wish: ", thisWish._id)
 
     const router = useRouter()
 
     const eventName = router.query.id
 
-    const getPaymentsData = async (eventId) => {
+    const organizePaymentsByGift = (payments, wishes) => {
+
+        let updatedWishes = wishes
+
+        payments.forEach(payment => {
+            console.log("payment: ", payment)
+            wishes.forEach((wish, idx) => {
+                if (payment.giftId === wish._id) {
+                    updatedWishes.splice(idx, 1)
+                    updatedWishes = [...updatedWishes, { ...wish, paid: wish.paid += payment.amount }]
+                }
+            })
+        });
+
+        console.log("updated wishes: ", updatedWishes)
+       setWishes(updatedWishes)
+    }
+
+    const getPaymentsData = async (eventId, wishes) => {
         const res = await fetch(`https://wishlistsundayplatform.vercel.app/api/getStripePayments?eventId=${eventId}`);
-        const { data } = await res.json();
-        console.log("payments data: ", data)
+        const { payments } = await res.json();
+        organizePaymentsByGift(payments, wishes)
     }
 
     const getWishesData = async (eventId) => {
         const noteRes = await fetch(`https://wishlistsundayplatform.vercel.app/api/getNotesBy/${eventId}`);
         const { noteData } = await noteRes.json();
-        setWishes(noteData)
+        const noteDataWithPaid = []
+        noteData.forEach((note) => {
+            noteDataWithPaid.push({ ...note, price: parseFloat(note.price), paid: 0 })
+        })
+        setWishes(noteDataWithPaid)
+        getPaymentsData(eventId, noteDataWithPaid)
     }
 
     const getEventData = async (eventName) => {
@@ -42,10 +64,6 @@ const Note = () => {
         getInitialProps(eventName)
     }, [router])
 
-    useEffect(() => {
-        getPaymentsData(event._id)
-    }, [router])
-
 
     return (
 
@@ -61,7 +79,7 @@ const Note = () => {
                                 className='card'
                             >
                                 <h3>{wish.title}</h3>
-                                <h3>$0 of ${wish.price}</h3>
+                                <h3>${wish.paid} of ${wish.price}</h3>
                                 <div className="cardactions">
                                     <button
                                         onClick={() => { setThisWish(wish) }}
