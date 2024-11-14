@@ -13,6 +13,12 @@ const Note = () => {
 
     const eventName = router.query.id
 
+    const getPaymentsData = async (eventId) => {
+        const res = await fetch(`https://wishlistsundayplatform.vercel.app/api/getStripePayments?eventId=${eventId}`);
+        const { data } = await res.json();
+        console.log("payments data: ", data)
+    }
+
     const getWishesData = async (eventId) => {
         const noteRes = await fetch(`https://wishlistsundayplatform.vercel.app/api/getNotesBy/${eventId}`);
         const { noteData } = await noteRes.json();
@@ -33,6 +39,10 @@ const Note = () => {
 
     useEffect(() => {
         getInitialProps(eventName)
+    }, [router])
+
+    useEffect(() => {
+        getPaymentsData(event._id)
     }, [router])
 
 
@@ -77,6 +87,7 @@ const Note = () => {
                             eventName={eventName}
                             giftId={thisWish._id.toString()}
                             eventId={event._id.toString()}
+                            getPaymentsData={getPaymentsData}
                         />
 
                         <div className='doublegapver' />
