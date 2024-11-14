@@ -50,7 +50,7 @@ const CheckoutForm = ({ recipientId, giftAmount }) => {
                 elements,
                 clientSecret,
                 confirmParams: {
-                    return_url: `${window.location.origin}/payment-complete`,
+                    return_url: `https://gift-easy-sender.vercel.app/payment-complete`,
                 },
             });
 
