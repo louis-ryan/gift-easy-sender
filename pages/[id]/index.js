@@ -1,48 +1,95 @@
+import { useState, useEffect } from 'react';
 import fetch from 'isomorphic-unfetch';
 import { useRouter } from 'next/router';
-import Navbar from '../../components/Navbar';
-import PaymentForm from '../../components/PaymentForm';
+import GiftPaymentForm from '../../components/GiftPaymentForm';
 
-const Note = ({ note }) => {
+const Note = () => {
 
-    const router = useRouter();
+    const [event, setEvent] = useState({})
+    const [wishes, setWishes] = useState([])
+    const [thisWish, setThisWish] = useState({})
 
-    const deleteNote = async () => {
-        const noteId = router.query.id;
-        try {
-            const deleted = await fetch(`http://localhost:3000/api/notes/${noteId}`, {
-                method: "Delete"
-            });
-            console.log("deleted: ", deleted)
-            router.push("/");
-        } catch (error) {
-            console.log(error)
-        }
+    const router = useRouter()
+
+    const eventName = router.query.id
+
+    const getWishesData = async (eventId) => {
+        const noteRes = await fetch(`https://wishlistsundayplatform.vercel.app/api/getNotesBy/${eventId}`);
+        const { noteData } = await noteRes.json();
+        setWishes(noteData)
     }
+
+    const getEventData = async (eventName) => {
+        const eventRes = await fetch(`https://wishlistsundayplatform.vercel.app/api/getEventBy/${eventName}`);
+        const { eventData } = await eventRes.json();
+        setEvent(eventData)
+        getWishesData(eventData._id)
+    }
+
+    const getInitialProps = async () => {
+        if (!eventName) return
+        getEventData(eventName)
+    }
+
+    useEffect(() => {
+        getInitialProps(eventName)
+    }, [router])
+
 
     return (
 
         <div className="container">
             <div className="wrapper">
-                <h1>{note.title}</h1>
-                <p>{note.description}</p>
-                <PaymentForm
-                    amount={note.price}
-                    recipientId={note._id}
-                    giftId={note._id}
-                />
-                <button onClick={deleteNote}>Delete</button>
+                <h1>{eventName}</h1>
+                <h3>{event.description}</h3>
+                <div className="cardspace">
+                    {wishes.map((wish) => {
+                        console.log("wish: ", wish)
+                        console.log("event: ", event)
+                        return (
+                            <div
+                                key={wish._id}
+                                className='card'
+                            >
+                                <h3>{wish.title}</h3>
+                                <h3>$0 of ${wish.price}</h3>
+                                <div className="cardactions">
+                                    <button
+                                        onClick={() => { setThisWish(wish) }}
+                                    >
+                                        {"Contribute"}
+                                    </button>
+                                </div>
+                            </div>
+                        )
+
+                    })}
+                </div>
+
+                {thisWish._id &&
+                    <div className="card" style={{ width: "100%" }}>
+
+                        <h3>{"Payment for " + thisWish.title}</h3>
+
+                        <GiftPaymentForm
+                            recipientId="acct_1QK0JABUsEMA9E3L"
+                            giftAmount={10.00}
+                        />
+
+                        <div className='doublegapver' />
+
+                        <button
+                            onClick={() => setThisWish({})}
+                        >
+                            {"CLOSE"}
+                        </button>
+
+                    </div>
+                }
             </div>
         </div>
 
     )
-}
-
-Note.getInitialProps = async ({ query: { id } }) => {
-    const res = await fetch(`http://localhost:3000/api/notes/${id}`);
-    const { data } = await res.json();
-
-    return { note: data }
 }
 
 export default Note;
