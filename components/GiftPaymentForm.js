@@ -50,9 +50,8 @@ const CheckoutForm = ({ recipientId, giftAmount }) => {
                 elements,
                 clientSecret,
                 confirmParams: {
-                    return_url: window.location.href,
-                    redirect: "if_required"
-                }
+                    return_url: `${window.location.origin}/payment-complete`,
+                },
             });
 
             if (confirmError) {
