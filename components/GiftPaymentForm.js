@@ -49,9 +49,6 @@ const CheckoutForm = ({ recipientId, giftAmount }) => {
             const { error: confirmError } = await stripe.confirmPayment({
                 elements,
                 clientSecret,
-                confirmParams: {
-                    return_url: `https://gift-easy-sender.vercel.app/payment-complete`,
-                },
             });
 
             if (confirmError) {
