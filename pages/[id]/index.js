@@ -15,20 +15,22 @@ const Note = () => {
 
     const organizePaymentsByGift = (payments, wishes) => {
 
-        let updatedWishes = wishes
+        let updatedWishes
+
+        updatedWishes = [...wishes]
 
         payments.forEach(payment => {
             console.log("payment: ", payment)
             wishes.forEach((wish, idx) => {
                 if (payment.giftId === wish._id) {
-                    updatedWishes.splice(idx, 1)
-                    updatedWishes = [...updatedWishes, { ...wish, paid: wish.paid += payment.amount }]
+                    updatedWishes[idx] = { ...wish, paid: wish.paid = wish.paid + payment.amount }
                 }
             })
         });
 
         console.log("updated wishes: ", updatedWishes)
-       setWishes(updatedWishes)
+
+        setWishes(updatedWishes)
     }
 
     const getPaymentsData = async (eventId, wishes) => {
