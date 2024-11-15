@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import fetch from 'isomorphic-unfetch';
 import { useRouter } from 'next/router';
-import GiftPaymentForm from '../../components/GiftPaymentForm';
+import GiftPaymentForm from '../../../components/GiftPaymentForm';
 
 const Note = () => {
 
@@ -12,6 +12,8 @@ const Note = () => {
     const router = useRouter()
 
     const eventName = router.query.id
+
+    console.log("event name: ", eventName)
 
     const organizePaymentsByGift = (payments, wishes) => {
 
@@ -36,6 +38,7 @@ const Note = () => {
     const getPaymentsData = async (eventId, wishes) => {
         const res = await fetch(`https://wishlistsundayplatform.vercel.app/api/getStripePayments?eventId=${eventId}`);
         const { payments } = await res.json();
+        console.log("payments json: ", payments)
         organizePaymentsByGift(payments, wishes)
     }
 
