@@ -60,7 +60,6 @@ const Note = () => {
                 throw new Error(`HTTP error! status: ${res.status}`);
             }
             const { payments } = await res.json();
-            console.log("payments json: ", payments);
             organizePaymentsByGift(payments, wishes);
         } catch (error) {
             console.error("Error fetching payments:", error);
