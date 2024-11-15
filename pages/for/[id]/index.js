@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import fetch from 'isomorphic-unfetch';
 import { useRouter } from 'next/router';
+import PersonalForm from '../../../components/PersonalForm';
 import GiftPaymentForm from '../../../components/GiftPaymentForm';
 
 const Note = () => {
@@ -8,12 +9,19 @@ const Note = () => {
     const [event, setEvent] = useState({})
     const [wishes, setWishes] = useState([])
     const [thisWish, setThisWish] = useState({})
+    const [expandedView, setExpandedView] = useState('PERSONAL')
+
+    const [formData, setFormData] = useState({
+        name: '',
+        description: '',
+        amount: ''
+    });
+
+    console.log("form data: ", formData)
 
     const router = useRouter()
 
     const eventName = router.query.id
-
-    console.log("event name: ", eventName)
 
     const organizePaymentsByGift = (payments, wishes) => {
 
@@ -93,50 +101,75 @@ const Note = () => {
             <div className="wrapper">
                 <h1>{eventName}</h1>
                 <h3>{event.description}</h3>
-                <div className="cardspace">
-                    {wishes.map((wish, idx) => {
-                        return (
-                            <div
-                                key={idx}
-                                className='card'
-                            >
-                                <h3>{wish.title}</h3>
-                                <h3>${wish.paid} of ${wish.price}</h3>
-                                <div className="cardactions">
-                                    <button
-                                        onClick={() => { setThisWish(wish) }}
-                                    >
-                                        {"Contribute"}
-                                    </button>
+                {!thisWish._id &&
+                    <div className="cardspace">
+                        {wishes.map((wish, idx) => {
+                            return (
+                                <div
+                                    key={idx}
+                                    className='card'
+                                >
+                                    <h3>{wish.title}</h3>
+                                    <h3>${wish.paid} of ${wish.price}</h3>
+                                    <div className="cardactions">
+                                        <button
+                                            onClick={() => { setThisWish(wish) }}
+                                        >
+                                            {"Contribute"}
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        )
+                            )
 
-                    })}
-                </div>
+                        })}
+                    </div>
+                }
 
                 {thisWish._id && event &&
                     <div className="card" style={{ width: "100%" }}>
 
-                        <h3>{"Payment for " + thisWish.title}</h3>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <h3>{"Payment for " + thisWish.title}</h3>
 
-                        <GiftPaymentForm
-                            recipientId="acct_1QK0JABUsEMA9E3L"
-                            giftAmount={10.00}
-                            eventName={eventName}
-                            giftId={thisWish._id}
-                            eventId={event._id}
-                            getPaymentsData={getPaymentsData}
-                        />
+                            <button
+                                onClick={() => { setThisWish({}); setExpandedView('PERSONAL') }}
+                            >
+                                {"X"}
+                            </button>
+                        </div>
 
-                        <div className='doublegapver' />
+                        {expandedView === 'PERSONAL' &&
+                            <PersonalForm
+                                formData={formData}
+                                setFormData={setFormData}
+                                setExpandedView={setExpandedView}
+                            />
+                        }
 
-                        <button
-                            onClick={() => setThisWish({})}
-                        >
-                            {"CLOSE"}
-                        </button>
+                        {expandedView === 'PAYMENT' &&
+                            <GiftPaymentForm
+                                recipientId="acct_1QK0JABUsEMA9E3L"
+                                giftAmount={formData.amount}
+                                eventName={eventName}
+                                giftId={thisWish._id}
+                                eventId={event._id}
+                                getPaymentsData={getPaymentsData}
+                                senderName={formData.name}
+                                description={formData.description}
+                            />
+                        }
 
+                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+                            <div
+                                style={{ height: "16px", width: "16px", backgroundColor: expandedView === 'PERSONAL' ? "grey" : "lightgrey" }}
+                                onClick={() => setExpandedView('PERSONAL')}
+                            />
+                            <div className="gaphor" />
+                            <div
+                                style={{ height: "16px", width: "16px", backgroundColor: expandedView === 'PAYMENT' ? "grey" : "lightgrey" }}
+                                onClick={() => setExpandedView('PAYMENT')}
+                            />
+                        </div>
                     </div>
                 }
             </div>
