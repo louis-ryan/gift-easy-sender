@@ -33,6 +33,7 @@ const CheckoutForm = ({ recipientId, giftAmount, eventName, giftId, eventId, get
 
             const response = await fetch('https://wishlistsundayplatform.vercel.app/api/createPaymentIntent', {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
                 },

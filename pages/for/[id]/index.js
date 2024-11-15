@@ -36,10 +36,27 @@ const Note = () => {
     }
 
     const getPaymentsData = async (eventId, wishes) => {
-        const res = await fetch(`https://wishlistsundayplatform.vercel.app/api/getStripePayments?eventId=${eventId}`);
-        const { payments } = await res.json();
-        console.log("payments json: ", payments)
-        organizePaymentsByGift(payments, wishes)
+        try {
+            const res = await fetch(
+                `https://wishlistsundayplatform.vercel.app/api/getStripePayments?eventId=${eventId}`,
+                {
+                    method: 'GET',
+                    credentials: 'include',  // Important for CORS with credentials
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // No need to explicitly set Origin as browser will do this
+                    }
+                }
+            );
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            const { payments } = await res.json();
+            console.log("payments json: ", payments);
+            organizePaymentsByGift(payments, wishes);
+        } catch (error) {
+            console.error("Error fetching payments:", error);
+        }
     }
 
     const getWishesData = async (eventId) => {
