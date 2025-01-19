@@ -2,8 +2,6 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useState, useEffect } from 'react';
 
-const stripePromise = loadStripe("pk_test_51QIZDoBA4OL48GP496gr6YabbIGhw1zzM4O7XhIAV52InnQp2tehgnZnRdCVRvzMCEmVI5QbIwfdIu51VcMN8utz00rDDwIK9Z");
-
 const CheckoutForm = ({ recipientId, giftAmount, eventName, giftId, eventId, getPaymentsData }) => {
     const stripe = useStripe();
     const elements = useElements();

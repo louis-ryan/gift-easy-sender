@@ -3,7 +3,7 @@ import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-
 import { useState, useEffect } from 'react';
 import CheckoutForm from './CheckoutForm';
 
-const stripePromise = loadStripe("pk_test_51QIZDoBA4OL48GP496gr6YabbIGhw1zzM4O7XhIAV52InnQp2tehgnZnRdCVRvzMCEmVI5QbIwfdIu51VcMN8utz00rDDwIK9Z");
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
 const GiftPaymentForm = ({ recipientId, giftAmount, eventName, giftId, eventId, getPaymentsData, senderName, description }) => {
     const [clientSecret, setClientSecret] = useState(null);
