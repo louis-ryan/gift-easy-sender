@@ -6,21 +6,18 @@ import GiftPaymentForm from '../../../components/GiftPaymentForm';
 
 const Note = () => {
 
+    const [recipient, setRecipient] = useState({})
     const [event, setEvent] = useState({})
     const [wishes, setWishes] = useState([])
     const [thisWish, setThisWish] = useState({})
     const [expandedView, setExpandedView] = useState('PERSONAL')
-
     const [formData, setFormData] = useState({
         name: '',
         description: '',
         amount: ''
     });
 
-    console.log("form data: ", formData)
-
     const router = useRouter()
-
     const eventName = router.query.id
 
     const organizePaymentsByGift = (payments, wishes) => {
@@ -37,8 +34,6 @@ const Note = () => {
                 }
             })
         });
-
-        console.log("updated wishes: ", updatedWishes)
 
         setWishes(updatedWishes)
     }
@@ -66,6 +61,16 @@ const Note = () => {
         }
     }
 
+    const getRecipientAccount = async (sub) => {
+        try {
+            const recipientRes = await fetch(`https://wishlistsundayplatform.vercel.app/api/getAccountForThisUser/${sub}||"`);
+            const { data } = await recipientRes.json();
+            setRecipient(data)
+        } catch (error) {
+            console.error("Error getting recipient account id:", error);
+        }
+    }
+
     const getWishesData = async (eventId) => {
         const noteRes = await fetch(`https://wishlistsundayplatform.vercel.app/api/getNotesBy/${eventId}`);
         const { noteData } = await noteRes.json();
@@ -81,6 +86,7 @@ const Note = () => {
         const eventRes = await fetch(`https://wishlistsundayplatform.vercel.app/api/getEventBy/${eventName}`);
         const { eventData } = await eventRes.json();
         setEvent(eventData)
+        getRecipientAccount(eventData.user)
         getWishesData(eventData._id)
     }
 
@@ -147,7 +153,7 @@ const Note = () => {
 
                         {expandedView === 'PAYMENT' &&
                             <GiftPaymentForm
-                                recipientId="acct_1QK0JABUsEMA9E3L"
+                                recipientId={recipient.stripeAccountId}
                                 giftAmount={formData.amount}
                                 eventName={eventName}
                                 giftId={thisWish._id}
