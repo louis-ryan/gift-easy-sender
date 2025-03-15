@@ -41,7 +41,7 @@ const Note = () => {
     const getPaymentsData = async (eventId, wishes) => {
         try {
             const res = await fetch(
-                `https://wishlistsundayplatform.vercel.app/api/getStripePayments?eventId=${eventId}`,
+                `https://wishlistagogo.vercel.app/api/getStripePayments?eventId=${eventId}`,
                 {
                     method: 'GET',
                     credentials: 'include',  // Important for CORS with credentials
@@ -63,7 +63,7 @@ const Note = () => {
 
     const getRecipientAccount = async (sub) => {
         try {
-            const recipientRes = await fetch(`https://wishlistsundayplatform.vercel.app/api/getAccountForThisUser/${sub}||"`);
+            const recipientRes = await fetch(`https://wishlistagogo.vercel.app/api/getAccountForThisUser/${sub}||"`);
             const { data } = await recipientRes.json();
             setRecipient(data)
         } catch (error) {
@@ -72,7 +72,7 @@ const Note = () => {
     }
 
     const getWishesData = async (eventId) => {
-        const noteRes = await fetch(`https://wishlistsundayplatform.vercel.app/api/getNotesBy/${eventId}`);
+        const noteRes = await fetch(`https://wishlistagogo.vercel.app/api/getNotesBy/${eventId}`);
         const { noteData } = await noteRes.json();
         const noteDataWithPaid = []
         noteData.forEach((note) => {
@@ -83,7 +83,7 @@ const Note = () => {
     }
 
     const getEventData = async (eventName) => {
-        const eventRes = await fetch(`https://wishlistsundayplatform.vercel.app/api/getEventBy/${eventName}`);
+        const eventRes = await fetch(`https://wishlistagogo.vercel.app/api/getEventBy/${eventName}`);
         const { eventData } = await eventRes.json();
         setEvent(eventData)
         getRecipientAccount(eventData.user)
@@ -104,7 +104,7 @@ const Note = () => {
 
         <div className="container">
             <div className="wrapper">
-                <h1>{eventName}</h1>
+                <h1>{event.name}</h1>
                 <h3>{event.description}</h3>
                 {!thisWish._id &&
                     <div className="cardspace">

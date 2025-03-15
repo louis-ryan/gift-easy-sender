@@ -11,7 +11,7 @@ const GiftPaymentForm = ({ recipientId, giftAmount, eventName, giftId, eventId, 
     useEffect(() => {
         const createIntent = async () => {
             try {
-                const response = await fetch('https://wishlistsundayplatform.vercel.app/api/createPaymentIntent', {
+                const response = await fetch('https://wishlistagogo.vercel.app/api/createPaymentIntent', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
