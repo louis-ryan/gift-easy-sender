@@ -1,22 +1,24 @@
+@import 'vars.css';
+
 p {
   color: grey;
 }
 
 h1 {
   font-size: 2rem;
-  color: #143950;
+  color: var(--primary-color);
   font-family: serif;
   font-weight: 800;
 }
 
 h2 {
   font-size: 1.5rem;
-  color: #143950;
+  color: var(--primary-color);
 }
 
 h3 {
   font-size: 1.2rem;
-  color: #143950;
+  color: var(--primary-color);
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -27,7 +29,7 @@ h4 {
 
 label {
   font-size: 0.93rem;
-  color: #30313d;
+  color: var(--primary-color);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
   margin-bottom: 4px;
@@ -36,7 +38,7 @@ label {
 
 label:focus {
   outline: 0px;
-  border: #0055ff 0.5px;
+  border: #50e3c2;
   box-shadow: 0px 1px 1px rgba(0, 0, 0, 0.03), 0px 3px 6px rgba(0, 0, 0, 0.02),
     0 0 0 3px #e6e6e6, 0 1px 1px 0 rgba(0, 0, 0, 0.08);
 }
