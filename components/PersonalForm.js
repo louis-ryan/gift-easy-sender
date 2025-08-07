@@ -12,7 +12,7 @@ const currencies = [
     { code: 'CNY', name: 'Chinese Yuan' },
 ];
 
-const InputForm = ({ formData, setFormData, setExpandedView }) => {
+const InputForm = ({ formData, setFormData, setExpandedView, isStepMode = false }) => {
     const [selectedCurrency, setSelectedCurrency] = useState('USD');
     const [usdAmount, setUsdAmount] = useState(0);
     const [isConverting, setIsConverting] = useState(false);
@@ -90,6 +90,41 @@ const InputForm = ({ formData, setFormData, setExpandedView }) => {
         convertToUSD();
     }, [formData.amount, selectedCurrency]);
 
+    // If in step mode, only show the card builder
+    if (isStepMode) {
+        return (
+            <div style={{ padding: 0 }}>
+                <div style={{
+                    textAlign: 'center',
+                    marginBottom: '24px'
+                }}>
+                    <h4 style={{
+                        margin: '0 0 8px 0',
+                        fontSize: '1.25rem',
+                        fontWeight: '600',
+                        color: '#111827'
+                    }}>
+                        Design Your Gift Card
+                    </h4>
+                    <p style={{
+                        margin: '0',
+                        color: '#6b7280',
+                        fontSize: '0.875rem'
+                    }}>
+                        Create a personalized card that will be sent with your contribution
+                    </p>
+                </div>
+                
+                <SimpleCardBuilder
+                    formData={formData}
+                    setFormData={setFormData}
+                    cardData={cardData}
+                    setCardData={setCardData}
+                />
+            </div>
+        );
+    }
+
     return (
         <div>
             <h4 style={{
@@ -99,215 +134,148 @@ const InputForm = ({ formData, setFormData, setExpandedView }) => {
                 color: '#333',
                 textAlign: 'center'
             }}>
-                Personal Details
+                Personal Information
             </h4>
 
-            <div>
-                <label htmlFor="name" style={{
-                    display: 'block',
-                    marginBottom: '0.5rem',
-                    fontSize: '0.9rem',
-                    fontWeight: '600',
-                    color: '#555'
-                }}>
-                    Recipient Name
-                </label>
-                <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="Enter recipient's name"
-                    style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        borderRadius: '8px',
-                        border: '1px solid #e1e5e9',
-                        fontSize: '1rem',
-                        color: '#333',
-                        transition: 'all 0.3s ease',
-                        boxSizing: 'border-box',
-                        background: '#fff'
-                    }}
-                />
-            </div>
-
-            <div className="doublegapver" />
-
             <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 2fr',
-                gap: '1rem'
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem',
+                marginBottom: '2rem'
             }}>
                 <div>
-                    <label htmlFor="currency" style={{
+                    <label style={{
                         display: 'block',
                         marginBottom: '0.5rem',
-                        fontSize: '0.9rem',
-                        fontWeight: '600',
-                        color: '#555'
+                        fontWeight: '500',
+                        color: '#374151'
                     }}>
-                        Currency
-                    </label>
-                    <select
-                        id="currency"
-                        name="currency"
-                        value={selectedCurrency}
-                        onChange={handleCurrencyChange}
-                        style={{
-                            width: '100%',
-                            padding: '0.75rem',
-                            borderRadius: '8px',
-                            border: '1px solid #e1e5e9',
-                            fontSize: '1rem',
-                            color: '#333',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s ease',
-                            background: '#fff'
-                        }}
-                    >
-                        {currencies.map((currency) => (
-                            <option key={currency.code} value={currency.code}>
-                                {currency.code}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                <div>
-                    <label htmlFor="amount" style={{
-                        display: 'block',
-                        marginBottom: '0.5rem',
-                        fontSize: '0.9rem',
-                        fontWeight: '600',
-                        color: '#555'
-                    }}>
-                        Amount ({selectedCurrency})
+                        Your Name
                     </label>
                     <input
                         type="text"
-                        id="amount"
-                        name="amount"
-                        value={formData.amount}
-                        onChange={handleMoneyChange}
-                        placeholder={`0.00 ${selectedCurrency}`}
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        placeholder="Enter your name"
                         style={{
                             width: '100%',
                             padding: '0.75rem',
-                            borderRadius: '8px',
-                            border: '1px solid #e1e5e9',
-                            fontSize: '1rem',
-                            color: '#333',
-                            transition: 'all 0.3s ease',
-                            boxSizing: 'border-box',
-                            background: '#fff'
+                            border: '1px solid #d1d5db',
+                            borderRadius: '0.375rem',
+                            fontSize: '1rem'
                         }}
                     />
-                    {formData.amount && formData.amount > 0 && selectedCurrency !== 'USD' && (
+                </div>
+
+                <div>
+                    <label style={{
+                        display: 'block',
+                        marginBottom: '0.5rem',
+                        fontWeight: '500',
+                        color: '#374151'
+                    }}>
+                        Contribution Amount
+                    </label>
+                    <div style={{
+                        display: 'flex',
+                        gap: '0.5rem'
+                    }}>
+                        <select
+                            name="currency"
+                            value={selectedCurrency}
+                            onChange={handleCurrencyChange}
+                            style={{
+                                padding: '0.75rem',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '0.375rem',
+                                background: '#f9fafb',
+                                minWidth: '100px'
+                            }}
+                        >
+                            {currencies.map((currency) => (
+                                <option key={currency.code} value={currency.code}>
+                                    {currency.code}
+                                </option>
+                            ))}
+                        </select>
+                        <input
+                            type="text"
+                            name="amount"
+                            value={formData.amount}
+                            onChange={handleMoneyChange}
+                            placeholder="0.00"
+                            style={{
+                                flex: 1,
+                                padding: '0.75rem',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '0.375rem',
+                                fontSize: '1rem'
+                            }}
+                        />
+                    </div>
+                    {isConverting && (
                         <div style={{
-                            fontSize: '0.8rem',
-                            color: '#666',
                             marginTop: '0.5rem',
-                            padding: '0.5rem',
-                            background: '#f8f9fa',
-                            borderRadius: '6px',
-                            textAlign: 'center',
-                            border: '1px solid #e9ecef'
+                            fontSize: '0.875rem',
+                            color: '#6b7280'
                         }}>
-                            {isConverting ? (
-                                <span>🔄 Converting to USD...</span>
-                            ) : (
-                                <span>💱 ≈ ${usdAmount.toFixed(2)} USD</span>
-                            )}
+                            Converting to USD...
                         </div>
                     )}
                 </div>
-            </div>
 
-            <div className="doublegapver" />
-
-            {/* Working Fabric.js Card Builder */}
-            <SimpleCardBuilder cardData={cardData} setCardData={setCardData} />
-
-            <div className="doublegapver" />
-
-            {/* Transaction Info */}
-            <div style={{
-                background: '#f8f9fa',
-                padding: '1rem',
-                borderRadius: '8px',
-                marginBottom: '1rem',
-                border: '1px solid #e9ecef'
-            }}>
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    marginBottom: '0.5rem'
-                }}>
-                    <span style={{ fontSize: '1rem' }}>💳</span>
-                    <strong style={{ fontSize: '0.9rem', color: '#495057' }}>Transaction Information</strong>
+                <div>
+                    <label style={{
+                        display: 'block',
+                        marginBottom: '0.5rem',
+                        fontWeight: '500',
+                        color: '#374151'
+                    }}>
+                        Message (Optional)
+                    </label>
+                    <textarea
+                        name="description"
+                        value={formData.description}
+                        onChange={handleChange}
+                        placeholder="Add a personal message..."
+                        rows="3"
+                        style={{
+                            width: '100%',
+                            padding: '0.75rem',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '0.375rem',
+                            fontSize: '1rem',
+                            resize: 'vertical'
+                        }}
+                    />
                 </div>
-                <p style={{
-                    fontSize: '0.85rem',
-                    margin: '0',
-                    color: '#6c757d',
-                    lineHeight: '1.4'
-                }}>
-                    All transactions are processed in USD.
-                    {selectedCurrency !== 'USD' && formData.amount > 0 ? (
-                        <span> Your {selectedCurrency} amount will be converted to ${usdAmount.toFixed(2)} USD.</span>
-                    ) : (
-                        <span> Your amount will be processed in USD.</span>
-                    )}
-                </p>
             </div>
 
-            <div className="doublegapver" />
-
-            {formData.name && cardData.cardHTML && formData.amount && (
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: '1rem'
+            }}>
                 <button
-                    onClick={() => {
-                        // The SimpleCardBuilder now manages its own state and passes the generated HTML via setCardData
-                        // The cardHTML is already updated in cardData by SimpleCardBuilder's updateCardData function
-                        setFormData(prev => ({ 
-                            ...prev, 
-                            usdAmount: selectedCurrency === 'USD' ? formData.amount : usdAmount,
-                            originalCurrency: selectedCurrency,
-                            originalAmount: formData.amount,
-                            cardHTML: cardData.cardHTML,
-                            cardText: cardData.cardText,
-                            backgroundImage: cardData.backgroundImage,
-                            overlayImages: cardData.overlayImages
-                        }));
-                        setExpandedView('PAYMENT');
-                    }}
+                    onClick={() => setExpandedView('PAYMENT')}
+                    disabled={!formData.name || !formData.amount}
                     style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        borderRadius: '8px',
-                        border: 'none',
-                        background: 'linear-gradient(45deg, #007bff, #0056b3)',
+                        flex: 1,
+                        padding: '0.75rem 1.5rem',
+                        backgroundColor: '#3b82f6',
                         color: 'white',
+                        border: 'none',
+                        borderRadius: '0.375rem',
                         fontSize: '1rem',
-                        fontWeight: '600',
+                        fontWeight: '500',
                         cursor: 'pointer',
-                        transition: 'all 0.3s ease',
-                        boxShadow: '0 2px 8px rgba(0, 123, 255, 0.3)'
-                    }}
-                    onMouseEnter={(e) => {
-                        e.target.style.transform = 'translateY(-1px)';
-                        e.target.style.boxShadow = '0 4px 12px rgba(0, 123, 255, 0.4)';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = '0 2px 8px rgba(0, 123, 255, 0.3)';
+                        opacity: (!formData.name || !formData.amount) ? 0.5 : 1
                     }}
                 >
                     Continue to Payment
                 </button>
-            )}
+            </div>
         </div>
     );
 };

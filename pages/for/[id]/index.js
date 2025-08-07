@@ -12,11 +12,17 @@ const Note = () => {
     const [event, setEvent] = useState({})
     const [wishes, setWishes] = useState([])
     const [thisWish, setThisWish] = useState({})
-    const [expandedView, setExpandedView] = useState('PERSONAL')
+    const [currentStep, setCurrentStep] = useState(1)
     const [formData, setFormData] = useState({
         name: '',
         description: '',
-        amount: ''
+        amount: '',
+        currency: 'USD',
+        messageType: 'none', // 'none', 'simple', 'card'
+        cardHTML: '',
+        cardText: '',
+        backgroundImage: '',
+        overlayImages: []
     });
 
     const router = useRouter()
@@ -101,6 +107,720 @@ const Note = () => {
         getInitialProps(eventName)
     }, [router])
 
+    const handleNextStep = () => {
+        setCurrentStep(currentStep + 1);
+    };
+
+    const handlePrevStep = () => {
+        setCurrentStep(currentStep - 1);
+    };
+
+    const handleClosePayment = () => {
+        setThisWish({});
+        setCurrentStep(1);
+        setFormData({
+            name: '',
+            description: '',
+            amount: '',
+            currency: 'USD',
+            messageType: 'none', // 'none', 'simple', 'card'
+            cardHTML: '',
+            cardText: '',
+            backgroundImage: '',
+            overlayImages: []
+        });
+    };
+
+    const renderStepIndicator = () => (
+        <div style={{
+            padding: '24px 32px',
+            background: '#f9fafb',
+            borderBottom: '1px solid #e5e7eb'
+        }}>
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '16px'
+            }}>
+                <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '8px'
+                }}>
+                    <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        background: currentStep >= 1 ? '#3b82f6' : '#e5e7eb',
+                        color: currentStep >= 1 ? 'white' : '#6b7280',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: '600',
+                        fontSize: '14px',
+                        transition: 'all 0.3s'
+                    }}>
+                        1
+                    </div>
+                    <div style={{
+                        fontSize: '12px',
+                        color: currentStep >= 1 ? '#3b82f6' : '#6b7280',
+                        fontWeight: '500'
+                    }}>
+                        Details
+                    </div>
+                </div>
+                <div style={{
+                    width: '60px',
+                    height: '2px',
+                    background: currentStep >= 2 ? '#3b82f6' : '#e5e7eb',
+                    transition: 'all 0.3s'
+                }}></div>
+                <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '8px'
+                }}>
+                    <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        background: currentStep >= 2 ? '#3b82f6' : '#e5e7eb',
+                        color: currentStep >= 2 ? 'white' : '#6b7280',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: '600',
+                        fontSize: '14px',
+                        transition: 'all 0.3s'
+                    }}>
+                        2
+                    </div>
+                    <div style={{
+                        fontSize: '12px',
+                        color: currentStep >= 2 ? '#3b82f6' : '#6b7280',
+                        fontWeight: '500'
+                    }}>
+                        Message
+                    </div>
+                </div>
+                <div style={{
+                    width: '60px',
+                    height: '2px',
+                    background: currentStep >= 3 ? '#3b82f6' : '#e5e7eb',
+                    transition: 'all 0.3s'
+                }}></div>
+                <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '8px'
+                }}>
+                    <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        background: currentStep >= 3 ? '#3b82f6' : '#e5e7eb',
+                        color: currentStep >= 3 ? 'white' : '#6b7280',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: '600',
+                        fontSize: '14px',
+                        transition: 'all 0.3s'
+                    }}>
+                        3
+                    </div>
+                    <div style={{
+                        fontSize: '12px',
+                        color: currentStep >= 3 ? '#3b82f6' : '#6b7280',
+                        fontWeight: '500'
+                    }}>
+                        Payment
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderStep1 = () => (
+        <div style={{ padding: '32px' }}>
+            <div style={{
+                textAlign: 'center',
+                marginBottom: '32px'
+            }}>
+                <h3 style={{
+                    margin: '0 0 8px 0',
+                    fontSize: '1.5rem',
+                    fontWeight: '600',
+                    color: '#111827'
+                }}>
+                    Your Contribution Details
+                </h3>
+                <p style={{
+                    margin: '0',
+                    color: '#6b7280',
+                    fontSize: '0.875rem'
+                }}>
+                    Tell us about your gift contribution
+                </p>
+            </div>
+            
+            <div style={{ marginBottom: '24px' }}>
+                <label style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    fontSize: '0.875rem'
+                }}>
+                    Your Name
+                </label>
+                <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    placeholder="Enter your name"
+                    style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '1rem',
+                        transition: 'all 0.2s',
+                        boxSizing: 'border-box'
+                    }}
+                />
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+                <label style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    fontSize: '0.875rem'
+                }}>
+                    Contribution Amount
+                </label>
+                <div style={{
+                    display: 'flex',
+                    gap: '8px'
+                }}>
+                    <select
+                        value={formData.currency}
+                        onChange={(e) => setFormData({...formData, currency: e.target.value})}
+                        style={{
+                            padding: '12px 16px',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '8px',
+                            background: '#f9fafb',
+                            fontSize: '1rem',
+                            minWidth: '80px'
+                        }}
+                    >
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="GBP">GBP</option>
+                        <option value="JPY">JPY</option>
+                        <option value="CAD">CAD</option>
+                        <option value="AUD">AUD</option>
+                        <option value="CHF">CHF</option>
+                        <option value="CNY">CNY</option>
+                    </select>
+                    <input
+                        type="number"
+                        value={formData.amount}
+                        onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                        placeholder="0.00"
+                        min="0"
+                        step="0.01"
+                        style={{
+                            flex: 1,
+                            padding: '12px 16px',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '8px',
+                            fontSize: '1rem',
+                            transition: 'all 0.2s',
+                            boxSizing: 'border-box'
+                        }}
+                    />
+                </div>
+            </div>
+
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: '16px',
+                marginTop: '32px'
+            }}>
+                <button
+                    onClick={handleClosePayment}
+                    style={{
+                        padding: '12px 24px',
+                        borderRadius: '8px',
+                        fontWeight: '500',
+                        fontSize: '0.875rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        border: 'none',
+                        minWidth: '120px',
+                        background: '#f3f4f6',
+                        color: '#374151',
+                        border: '1px solid #d1d5db'
+                    }}
+                >
+                    Cancel
+                </button>
+                <button
+                    onClick={handleNextStep}
+                    disabled={!formData.name || !formData.amount}
+                    style={{
+                        padding: '12px 24px',
+                        borderRadius: '8px',
+                        fontWeight: '500',
+                        fontSize: '0.875rem',
+                        cursor: !formData.name || !formData.amount ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.2s',
+                        border: 'none',
+                        minWidth: '120px',
+                        background: (!formData.name || !formData.amount) ? '#9ca3af' : '#3b82f6',
+                        color: 'white',
+                        opacity: (!formData.name || !formData.amount) ? 0.5 : 1
+                    }}
+                >
+                    Continue to Message
+                </button>
+            </div>
+        </div>
+    );
+
+    const renderStep2 = () => (
+        <div style={{ padding: '32px' }}>
+            <div style={{
+                textAlign: 'center',
+                marginBottom: '32px'
+            }}>
+                <h3 style={{
+                    margin: '0 0 8px 0',
+                    fontSize: '1.5rem',
+                    fontWeight: '600',
+                    color: '#111827'
+                }}>
+                    Add a Personal Touch
+                </h3>
+                <p style={{
+                    margin: '0',
+                    color: '#6b7280',
+                    fontSize: '0.875rem'
+                }}>
+                    Choose how you'd like to personalize your contribution
+                </p>
+            </div>
+            
+            <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+                marginBottom: '32px'
+            }}>
+                {/* Option 1: No Message */}
+                <div
+                    onClick={() => setFormData({...formData, messageType: 'none'})}
+                    style={{
+                        padding: '20px',
+                        border: `2px solid ${formData.messageType === 'none' ? '#3b82f6' : '#e5e7eb'}`,
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        background: formData.messageType === 'none' ? '#f0f9ff' : 'white'
+                    }}
+                >
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '16px'
+                    }}>
+                        <div style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            border: `2px solid ${formData.messageType === 'none' ? '#3b82f6' : '#d1d5db'}`,
+                            background: formData.messageType === 'none' ? '#3b82f6' : 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}>
+                            {formData.messageType === 'none' && (
+                                <div style={{
+                                    width: '8px',
+                                    height: '8px',
+                                    borderRadius: '50%',
+                                    background: 'white'
+                                }}></div>
+                            )}
+                        </div>
+                        <div>
+                            <h4 style={{
+                                margin: '0 0 4px 0',
+                                fontSize: '1.125rem',
+                                fontWeight: '600',
+                                color: '#111827'
+                            }}>
+                                No Message
+                            </h4>
+                            <p style={{
+                                margin: '0',
+                                fontSize: '0.875rem',
+                                color: '#6b7280'
+                            }}>
+                                Send your contribution without any additional message
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Option 2: Simple Message */}
+                <div
+                    onClick={() => setFormData({...formData, messageType: 'simple'})}
+                    style={{
+                        padding: '20px',
+                        border: `2px solid ${formData.messageType === 'simple' ? '#3b82f6' : '#e5e7eb'}`,
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        background: formData.messageType === 'simple' ? '#f0f9ff' : 'white'
+                    }}
+                >
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '16px'
+                    }}>
+                        <div style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            border: `2px solid ${formData.messageType === 'simple' ? '#3b82f6' : '#d1d5db'}`,
+                            background: formData.messageType === 'simple' ? '#3b82f6' : 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}>
+                            {formData.messageType === 'simple' && (
+                                <div style={{
+                                    width: '8px',
+                                    height: '8px',
+                                    borderRadius: '50%',
+                                    background: 'white'
+                                }}></div>
+                            )}
+                        </div>
+                        <div>
+                            <h4 style={{
+                                margin: '0 0 4px 0',
+                                fontSize: '1.125rem',
+                                fontWeight: '600',
+                                color: '#111827'
+                            }}>
+                                Simple Message
+                            </h4>
+                            <p style={{
+                                margin: '0',
+                                fontSize: '0.875rem',
+                                color: '#6b7280'
+                            }}>
+                                Add a short personal message to your contribution
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Option 3: Card Builder */}
+                <div
+                    onClick={() => setFormData({...formData, messageType: 'card'})}
+                    style={{
+                        padding: '20px',
+                        border: `2px solid ${formData.messageType === 'card' ? '#3b82f6' : '#e5e7eb'}`,
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        background: formData.messageType === 'card' ? '#f0f9ff' : 'white'
+                    }}
+                >
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '16px'
+                    }}>
+                        <div style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            border: `2px solid ${formData.messageType === 'card' ? '#3b82f6' : '#d1d5db'}`,
+                            background: formData.messageType === 'card' ? '#3b82f6' : 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}>
+                            {formData.messageType === 'card' && (
+                                <div style={{
+                                    width: '8px',
+                                    height: '8px',
+                                    borderRadius: '50%',
+                                    background: 'white'
+                                }}></div>
+                            )}
+                        </div>
+                        <div>
+                            <h4 style={{
+                                margin: '0 0 4px 0',
+                                fontSize: '1.125rem',
+                                fontWeight: '600',
+                                color: '#111827'
+                            }}>
+                                Design a Card
+                            </h4>
+                            <p style={{
+                                margin: '0',
+                                fontSize: '0.875rem',
+                                color: '#6b7280'
+                            }}>
+                                Create a personalized digital card with images and text
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Show message input if simple message is selected */}
+            {formData.messageType === 'simple' && (
+                <div style={{ marginBottom: '24px' }}>
+                    <label style={{
+                        display: 'block',
+                        marginBottom: '8px',
+                        fontWeight: '500',
+                        color: '#374151',
+                        fontSize: '0.875rem'
+                    }}>
+                        Your Message
+                    </label>
+                    <textarea
+                        value={formData.description}
+                        onChange={(e) => setFormData({...formData, description: e.target.value})}
+                        placeholder="Add a personal message..."
+                        rows="4"
+                        style={{
+                            width: '100%',
+                            padding: '12px 16px',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '8px',
+                            fontSize: '1rem',
+                            fontFamily: 'inherit',
+                            resize: 'vertical',
+                            minHeight: '100px',
+                            transition: 'all 0.2s',
+                            boxSizing: 'border-box'
+                        }}
+                    />
+                </div>
+            )}
+
+            {/* Show card builder if card is selected */}
+            {formData.messageType === 'card' && (
+                <div style={{ marginBottom: '24px' }}>
+                    <PersonalForm
+                        formData={formData}
+                        setFormData={setFormData}
+                        setExpandedView={() => {}}
+                        isStepMode={true}
+                    />
+                </div>
+            )}
+
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: '16px',
+                marginTop: '32px'
+            }}>
+                <button
+                    onClick={handlePrevStep}
+                    style={{
+                        padding: '12px 24px',
+                        borderRadius: '8px',
+                        fontWeight: '500',
+                        fontSize: '0.875rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        border: 'none',
+                        minWidth: '120px',
+                        background: '#f3f4f6',
+                        color: '#374151',
+                        border: '1px solid #d1d5db'
+                    }}
+                >
+                    Back
+                </button>
+                <button
+                    onClick={handleNextStep}
+                    style={{
+                        padding: '12px 24px',
+                        borderRadius: '8px',
+                        fontWeight: '500',
+                        fontSize: '0.875rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        border: 'none',
+                        minWidth: '120px',
+                        background: '#3b82f6',
+                        color: 'white'
+                    }}
+                >
+                    Continue to Payment
+                </button>
+            </div>
+        </div>
+    );
+
+    const renderStep3 = () => (
+        <div style={{ padding: '32px' }}>
+            <div style={{
+                textAlign: 'center',
+                marginBottom: '32px'
+            }}>
+                <h3 style={{
+                    margin: '0 0 8px 0',
+                    fontSize: '1.5rem',
+                    fontWeight: '600',
+                    color: '#111827'
+                }}>
+                    Complete Your Payment
+                </h3>
+                <p style={{
+                    margin: '0',
+                    color: '#6b7280',
+                    fontSize: '0.875rem'
+                }}>
+                    Securely process your contribution
+                </p>
+            </div>
+            
+            <div style={{
+                background: '#f9fafb',
+                borderRadius: '8px',
+                padding: '20px',
+                marginBottom: '24px'
+            }}>
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '8px 0',
+                    borderBottom: '1px solid #e5e7eb'
+                }}>
+                    <span style={{
+                        color: '#6b7280',
+                        fontSize: '0.875rem'
+                    }}>
+                        Contribution to:
+                    </span>
+                    <span style={{
+                        fontWeight: '500',
+                        color: '#111827'
+                    }}>
+                        {thisWish.title}
+                    </span>
+                </div>
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '8px 0',
+                    borderBottom: '1px solid #e5e7eb'
+                }}>
+                    <span style={{
+                        color: '#6b7280',
+                        fontSize: '0.875rem'
+                    }}>
+                        Amount:
+                    </span>
+                    <span style={{
+                        fontWeight: '500',
+                        color: '#111827'
+                    }}>
+                        {formData.amount} {formData.currency}
+                    </span>
+                </div>
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '8px 0'
+                }}>
+                    <span style={{
+                        color: '#6b7280',
+                        fontSize: '0.875rem'
+                    }}>
+                        From:
+                    </span>
+                    <span style={{
+                        fontWeight: '500',
+                        color: '#111827'
+                    }}>
+                        {formData.name}
+                    </span>
+                </div>
+            </div>
+
+            <div style={{ margin: '24px 0' }}>
+                <GiftPaymentForm
+                    recipientId={recipient.stripeAccountId}
+                    giftAmount={formData.amount}
+                    giftCurrency={formData.currency}
+                    eventName={eventName}
+                    giftId={thisWish._id}
+                    eventId={event._id}
+                    getPaymentsData={getPaymentsData}
+                    senderName={formData.name}
+                    description={formData.description}
+                    cardHTML={formData.cardHTML}
+                    cardText={formData.cardText}
+                    backgroundImage={formData.backgroundImage}
+                    overlayImages={formData.overlayImages}
+                />
+            </div>
+
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: '16px',
+                marginTop: '32px'
+            }}>
+                <button
+                    onClick={handlePrevStep}
+                    style={{
+                        padding: '12px 24px',
+                        borderRadius: '8px',
+                        fontWeight: '500',
+                        fontSize: '0.875rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        border: 'none',
+                        minWidth: '120px',
+                        background: '#f3f4f6',
+                        color: '#374151',
+                        border: '1px solid #d1d5db'
+                    }}
+                >
+                    Back
+                </button>
+            </div>
+        </div>
+    );
 
     return (
 
@@ -206,54 +926,60 @@ const Note = () => {
                     }
 
                     {thisWish._id && event &&
-                        <div className="card" style={{ width: "100%", padding: "32px" }}>
-
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                <h3>{"Payment for " + thisWish.title}</h3>
-
+                        <div style={{
+                            background: 'white',
+                            borderRadius: '12px',
+                            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+                            margin: '20px 0',
+                            overflow: 'hidden'
+                        }}>
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: '24px 32px',
+                                borderBottom: '1px solid #e5e7eb',
+                                background: '#f9fafb'
+                            }}>
+                                <div>
+                                    <h3 style={{
+                                        margin: '0',
+                                        fontSize: '1.5rem',
+                                        fontWeight: '600',
+                                        color: '#111827'
+                                    }}>
+                                        Contribute to {thisWish.title}
+                                    </h3>
+                                    <p style={{
+                                        margin: '4px 0 0 0',
+                                        color: '#6b7280',
+                                        fontSize: '0.875rem'
+                                    }}>
+                                        Complete your gift contribution
+                                    </p>
+                                </div>
                                 <button
-                                    onClick={() => { setThisWish({}); setExpandedView('PERSONAL') }}
+                                    onClick={handleClosePayment}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        fontSize: '24px',
+                                        color: '#6b7280',
+                                        cursor: 'pointer',
+                                        padding: '8px',
+                                        borderRadius: '6px',
+                                        transition: 'all 0.2s'
+                                    }}
                                 >
-                                    {"X"}
+                                    ×
                                 </button>
                             </div>
 
-                            {expandedView === 'PERSONAL' &&
-                                <PersonalForm
-                                    formData={formData}
-                                    setFormData={setFormData}
-                                    setExpandedView={setExpandedView}
-                                />
-                            }
+                            {renderStepIndicator()}
 
-                            {expandedView === 'PAYMENT' &&
-                                <GiftPaymentForm
-                                    recipientId={recipient.stripeAccountId}
-                                    giftAmount={formData.amount}
-                                    eventName={eventName}
-                                    giftId={thisWish._id}
-                                    eventId={event._id}
-                                    getPaymentsData={getPaymentsData}
-                                    senderName={formData.name}
-                                    description={formData.description}
-                                    cardHTML={formData.cardHTML}
-                                    cardText={formData.cardText}
-                                    backgroundImage={formData.backgroundImage}
-                                    overlayImages={formData.overlayImages}
-                                />
-                            }
-
-                            {/* <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-                                <div
-                                    style={{ height: "16px", width: "16px", backgroundColor: expandedView === 'PERSONAL' ? "grey" : "lightgrey" }}
-                                    onClick={() => setExpandedView('PERSONAL')}
-                                />
-                                <div className="gaphor" />
-                                <div
-                                    style={{ height: "16px", width: "16px", backgroundColor: expandedView === 'PAYMENT' ? "grey" : "lightgrey" }}
-                                    onClick={() => setExpandedView('PAYMENT')}
-                                />
-                            </div> */}
+                            {currentStep === 1 && renderStep1()}
+                            {currentStep === 2 && renderStep2()}
+                            {currentStep === 3 && renderStep3()}
                         </div>
                     }
 
