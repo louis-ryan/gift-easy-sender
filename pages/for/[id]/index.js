@@ -237,6 +237,9 @@ const Note = () => {
                                     senderName={formData.name}
                                     description={formData.description}
                                     cardHTML={formData.cardHTML}
+                                    cardText={formData.cardText}
+                                    backgroundImage={formData.backgroundImage}
+                                    overlayImages={formData.overlayImages}
                                 />
                             }
 

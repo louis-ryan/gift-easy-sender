@@ -276,7 +276,10 @@ const InputForm = ({ formData, setFormData, setExpandedView }) => {
                             usdAmount: selectedCurrency === 'USD' ? formData.amount : usdAmount,
                             originalCurrency: selectedCurrency,
                             originalAmount: formData.amount,
-                            cardHTML: cardData.cardHTML // cardData now contains cardHTML directly
+                            cardHTML: cardData.cardHTML,
+                            cardText: cardData.cardText,
+                            backgroundImage: cardData.backgroundImage,
+                            overlayImages: cardData.overlayImages
                         }));
                         setExpandedView('PAYMENT');
                     }}
