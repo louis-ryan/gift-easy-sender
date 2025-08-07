@@ -236,6 +236,7 @@ const Note = () => {
                                     getPaymentsData={getPaymentsData}
                                     senderName={formData.name}
                                     description={formData.description}
+                                    cardHTML={formData.cardHTML}
                                 />
                             }
 

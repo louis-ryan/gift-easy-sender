@@ -5,7 +5,7 @@ import CheckoutForm from './CheckoutForm';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
-const GiftPaymentForm = ({ recipientId, giftAmount, eventName, giftId, eventId, getPaymentsData, senderName, description }) => {
+const GiftPaymentForm = ({ recipientId, giftAmount, eventName, giftId, eventId, getPaymentsData, senderName, description, cardHTML }) => {
     const [clientSecret, setClientSecret] = useState(null);
 
     useEffect(() => {
@@ -23,7 +23,8 @@ const GiftPaymentForm = ({ recipientId, giftAmount, eventName, giftId, eventId, 
                         giftId,
                         eventId,
                         senderName,
-                        description
+                        description,
+                        cardHTML
                     }),
                 });
 
@@ -35,7 +36,7 @@ const GiftPaymentForm = ({ recipientId, giftAmount, eventName, giftId, eventId, 
         };
 
         createIntent();
-    }, [giftAmount, recipientId, giftId, eventId]);
+    }, [giftAmount, recipientId, giftId, eventId, cardHTML]);
 
     if (!clientSecret) {
         return <div className="text-center py-4">Loading payment form...</div>;
