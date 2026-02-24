@@ -86,7 +86,7 @@ const SimpleCardBuilder = ({ cardData, setCardData }) => {
             const formData = new FormData();
             formData.append('file', processedFile);
 
-            const response = await fetch('https://wishlistagogo.vercel.app/api/uploadToAWS', {
+            const response = await fetch('${process.env.NEXT_PUBLIC_REGISTRY_URL}/api/uploadToAWS', {
                 method: 'POST',
                 body: formData
             });

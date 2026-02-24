@@ -60,7 +60,7 @@ const InputForm = ({ formData, setFormData, setExpandedView, isStepMode = false 
 
             setIsConverting(true);
             try {
-                const response = await fetch('https://wishlistagogo.vercel.app/api/convertToUsd', {
+                const response = await fetch('${process.env.NEXT_PUBLIC_REGISTRY_URL}/api/convertToUsd', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

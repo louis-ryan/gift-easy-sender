@@ -12,6 +12,7 @@ const Note = () => {
     const [event, setEvent] = useState({})
     const [wishes, setWishes] = useState([])
     const [thisWish, setThisWish] = useState({})
+    const [intentKey, setIntentKey] = useState(null)
     const [currentStep, setCurrentStep] = useState(1)
     const [formData, setFormData] = useState({
         name: '',
@@ -49,7 +50,7 @@ const Note = () => {
     const getPaymentsData = async (eventId, wishes) => {
         try {
             const res = await fetch(
-                `https://wishlistagogo.vercel.app/api/getStripePaymentsForEvent?eventId=${eventId}`,
+                `${process.env.NEXT_PUBLIC_REGISTRY_URL}/api/getStripePaymentsForEvent?eventId=${eventId}`,
                 {
                     method: 'GET',
                     credentials: 'include',  // Important for CORS with credentials
@@ -71,7 +72,7 @@ const Note = () => {
 
     const getRecipientAccount = async (sub) => {
         try {
-            const recipientRes = await fetch(`https://wishlistagogo.vercel.app/api/getAccountForThisUser/${sub}||"`);
+            const recipientRes = await fetch(`${process.env.NEXT_PUBLIC_REGISTRY_URL}/api/getAccountForThisUser/${sub}||"`);
             const { data } = await recipientRes.json();
             setRecipient(data)
         } catch (error) {
@@ -80,7 +81,7 @@ const Note = () => {
     }
 
     const getWishesData = async (eventId) => {
-        const noteRes = await fetch(`https://wishlistagogo.vercel.app/api/getNotesBy/${eventId}`);
+        const noteRes = await fetch(`${process.env.NEXT_PUBLIC_REGISTRY_URL}/api/getNotesBy/${eventId}`);
         const { noteData } = await noteRes.json();
         const noteDataWithPaid = []
         noteData.forEach((note) => {
@@ -91,7 +92,7 @@ const Note = () => {
     }
 
     const getEventData = async (eventName) => {
-        const eventRes = await fetch(`https://wishlistagogo.vercel.app/api/getEventBy/${eventName}`);
+        const eventRes = await fetch(`${process.env.NEXT_PUBLIC_REGISTRY_URL}/api/getEventBy/${eventName}`);
         const { eventData } = await eventRes.json();
         setEvent(eventData)
         getRecipientAccount(eventData.user)
@@ -791,6 +792,7 @@ const Note = () => {
                     cardText={formData.cardText}
                     backgroundImage={formData.backgroundImage}
                     overlayImages={formData.overlayImages}
+                    idempotencyKey={intentKey}
                 />
             </div>
 
@@ -912,7 +914,7 @@ const Note = () => {
                                         <div className='doublegapver' />
 
                                         <button
-                                            onClick={() => { setThisWish(wish) }}
+                                            onClick={() => { setThisWish(wish); setIntentKey(`${wish._id}-${Date.now()}`); }}
                                             style={{ width: "100%" }}
                                         >
                                             {"Contribute"}
