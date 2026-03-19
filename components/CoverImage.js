@@ -23,7 +23,7 @@ const CoverImage = ({ imageUrl }) => {
                 />
             ) : (
                 <img
-                    src={"header_placeholder.webp"}
+                    src={"/header_placeholder.webp"}
                     alt="header placeholder image"
                     style={{
                         width: "100%",

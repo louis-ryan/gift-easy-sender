@@ -1,998 +1,442 @@
 import { useState, useEffect } from 'react';
 import fetch from 'isomorphic-unfetch';
 import { useRouter } from 'next/router';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import PersonalForm from '../../../components/PersonalForm';
 import GiftPaymentForm from '../../../components/GiftPaymentForm';
-import CoverImage from '../../../components/CoverImage';
+import SimpleCardBuilder from '../../../components/SimpleCardBuilder';
+
+const QUICK_AMOUNTS = [10, 25, 50, 100];
 
 const Note = () => {
-
-    const [recipient, setRecipient] = useState({})
-    const [event, setEvent] = useState({})
-    const [wishes, setWishes] = useState([])
-    const [thisWish, setThisWish] = useState({})
-    const [intentKey, setIntentKey] = useState(null)
-    const [currentStep, setCurrentStep] = useState(1)
+    const [recipient, setRecipient] = useState({});
+    const [event, setEvent] = useState({});
+    const [wishes, setWishes] = useState([]);
+    const [thisWish, setThisWish] = useState({});
+    const [intentKey, setIntentKey] = useState(null);
+    const [currentStep, setCurrentStep] = useState(1);
     const [formData, setFormData] = useState({
         name: '',
         description: '',
         amount: '',
         currency: 'USD',
-        messageType: 'none', // 'none', 'simple', 'card'
+        messageType: 'none',
         cardHTML: '',
         cardText: '',
         backgroundImage: '',
-        overlayImages: []
+        overlayImages: [],
     });
 
-    const router = useRouter()
-    const eventName = router.query.id
+    const router = useRouter();
+    const eventName = router.query.id;
 
     const organizePaymentsByGift = (payments, wishes) => {
-
-        let updatedWishes
-
-        updatedWishes = [...wishes]
-
-        payments.forEach(payment => {
-            console.log("payment: ", payment)
+        const updatedWishes = [...wishes];
+        payments.forEach((payment) => {
             wishes.forEach((wish, idx) => {
                 if (payment.giftId === wish._id) {
-                    updatedWishes[idx] = { ...wish, paid: wish.paid = wish.paid + payment.amount }
+                    updatedWishes[idx] = { ...wish, paid: wish.paid + payment.amount };
                 }
-            })
+            });
         });
-
-        setWishes(updatedWishes)
-    }
+        setWishes(updatedWishes);
+    };
 
     const getPaymentsData = async (eventId, wishes) => {
         try {
             const res = await fetch(
                 `${process.env.NEXT_PUBLIC_REGISTRY_URL}/api/getStripePaymentsForEvent?eventId=${eventId}`,
-                {
-                    method: 'GET',
-                    credentials: 'include',  // Important for CORS with credentials
-                    headers: {
-                        'Content-Type': 'application/json',
-                        // No need to explicitly set Origin as browser will do this
-                    }
-                }
+                { method: 'GET', credentials: 'include', headers: { 'Content-Type': 'application/json' } }
             );
-            if (!res.ok) {
-                throw new Error(`HTTP error! status: ${res.status}`);
-            }
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
             const { payments } = await res.json();
             organizePaymentsByGift(payments, wishes);
         } catch (error) {
-            console.error("Error fetching payments:", error);
+            console.error('Error fetching payments:', error);
         }
-    }
+    };
 
     const getRecipientAccount = async (sub) => {
         try {
-            const recipientRes = await fetch(`${process.env.NEXT_PUBLIC_REGISTRY_URL}/api/getAccountForThisUser/${sub}||"`);
-            const { data } = await recipientRes.json();
-            setRecipient(data)
+            const res = await fetch(`${process.env.NEXT_PUBLIC_REGISTRY_URL}/api/getAccountForThisUser/${sub}||"`);
+            const { data } = await res.json();
+            setRecipient(data);
         } catch (error) {
-            console.error("Error getting recipient account id:", error);
+            console.error('Error getting recipient account id:', error);
         }
-    }
+    };
 
     const getWishesData = async (eventId) => {
-        const noteRes = await fetch(`${process.env.NEXT_PUBLIC_REGISTRY_URL}/api/getNotesBy/${eventId}`);
-        const { noteData } = await noteRes.json();
-        const noteDataWithPaid = []
-        noteData.forEach((note) => {
-            noteDataWithPaid.push({ ...note, price: parseFloat(note.price), paid: 0 })
-        })
-        setWishes(noteDataWithPaid)
-        getPaymentsData(eventId, noteDataWithPaid)
-    }
+        const res = await fetch(`${process.env.NEXT_PUBLIC_REGISTRY_URL}/api/getNotesBy/${eventId}`);
+        const { noteData } = await res.json();
+        const withPaid = noteData.map((n) => ({ ...n, price: parseFloat(n.price), paid: 0 }));
+        setWishes(withPaid);
+        getPaymentsData(eventId, withPaid);
+    };
 
-    const getEventData = async (eventName) => {
-        const eventRes = await fetch(`${process.env.NEXT_PUBLIC_REGISTRY_URL}/api/getEventBy/${eventName}`);
-        const { eventData } = await eventRes.json();
-        setEvent(eventData)
-        getRecipientAccount(eventData.user)
-        getWishesData(eventData._id)
-    }
-
-    const getInitialProps = async () => {
-        if (!eventName) return
-        getEventData(eventName)
-    }
+    const getEventData = async (name) => {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_REGISTRY_URL}/api/getEventBy/${name}`);
+        const { eventData } = await res.json();
+        setEvent(eventData);
+        getRecipientAccount(eventData.user);
+        getWishesData(eventData._id);
+    };
 
     useEffect(() => {
-        getInitialProps(eventName)
-    }, [router])
+        if (!eventName) return;
+        getEventData(eventName);
+    }, [router]);
 
-    const handleNextStep = () => {
-        setCurrentStep(currentStep + 1);
-    };
-
-    const handlePrevStep = () => {
-        setCurrentStep(currentStep - 1);
-    };
+    const handleNextStep = () => setCurrentStep((s) => s + 1);
+    const handlePrevStep = () => setCurrentStep((s) => s - 1);
 
     const handleClosePayment = () => {
         setThisWish({});
         setCurrentStep(1);
-        setFormData({
-            name: '',
-            description: '',
-            amount: '',
-            currency: 'USD',
-            messageType: 'none', // 'none', 'simple', 'card'
-            cardHTML: '',
-            cardText: '',
-            backgroundImage: '',
-            overlayImages: []
-        });
+        setFormData({ name: '', description: '', amount: '', currency: 'USD', messageType: 'none', cardHTML: '', cardText: '', backgroundImage: '', overlayImages: [] });
     };
 
-    const renderStepIndicator = () => (
-        <div style={{
-            padding: '24px 32px',
-            background: '#f9fafb',
-            borderBottom: '1px solid #e5e7eb'
-        }}>
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '16px'
-            }}>
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '8px'
-                }}>
-                    <div style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        background: currentStep >= 1 ? '#3b82f6' : '#e5e7eb',
-                        color: currentStep >= 1 ? 'white' : '#6b7280',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: '600',
-                        fontSize: '14px',
-                        transition: 'all 0.3s'
-                    }}>
-                        1
-                    </div>
-                    <div style={{
-                        fontSize: '12px',
-                        color: currentStep >= 1 ? '#3b82f6' : '#6b7280',
-                        fontWeight: '500'
-                    }}>
-                        Details
-                    </div>
-                </div>
-                <div style={{
-                    width: '60px',
-                    height: '2px',
-                    background: currentStep >= 2 ? '#3b82f6' : '#e5e7eb',
-                    transition: 'all 0.3s'
-                }}></div>
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '8px'
-                }}>
-                    <div style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        background: currentStep >= 2 ? '#3b82f6' : '#e5e7eb',
-                        color: currentStep >= 2 ? 'white' : '#6b7280',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: '600',
-                        fontSize: '14px',
-                        transition: 'all 0.3s'
-                    }}>
-                        2
-                    </div>
-                    <div style={{
-                        fontSize: '12px',
-                        color: currentStep >= 2 ? '#3b82f6' : '#6b7280',
-                        fontWeight: '500'
-                    }}>
-                        Message
-                    </div>
-                </div>
-                <div style={{
-                    width: '60px',
-                    height: '2px',
-                    background: currentStep >= 3 ? '#3b82f6' : '#e5e7eb',
-                    transition: 'all 0.3s'
-                }}></div>
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '8px'
-                }}>
-                    <div style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        background: currentStep >= 3 ? '#3b82f6' : '#e5e7eb',
-                        color: currentStep >= 3 ? 'white' : '#6b7280',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: '600',
-                        fontSize: '14px',
-                        transition: 'all 0.3s'
-                    }}>
-                        3
-                    </div>
-                    <div style={{
-                        fontSize: '12px',
-                        color: currentStep >= 3 ? '#3b82f6' : '#6b7280',
-                        fontWeight: '500'
-                    }}>
-                        Payment
-                    </div>
-                </div>
-            </div>
+    const pct = (wish) => {
+        if (!wish.price || wish.price === 0) return 0;
+        return Math.min(100, Math.round((wish.paid / wish.price) * 100));
+    };
+
+    const fmtAmount = (wish) => {
+        const cur = wish.currency || 'USD';
+        const paid = wish.paid || 0;
+        const total = wish.amount || wish.price;
+        return `${paid} ${cur} of ${total} ${cur}`;
+    };
+
+    // ── Step dots ──────────────────────────────────────────────────
+    const StepDots = ({ current, total }) => (
+        <div className="sender-step-dots">
+            {Array.from({ length: total }).map((_, i) => (
+                <div key={i} className={`sender-step-dot${i < current ? ' active' : ''}`} />
+            ))}
         </div>
     );
 
+    // ── Step 1: Amount ─────────────────────────────────────────────
     const renderStep1 = () => (
-        <div style={{ padding: '32px' }}>
-            <div style={{
-                textAlign: 'center',
-                marginBottom: '32px'
-            }}>
-                <h3 style={{
-                    margin: '0 0 8px 0',
-                    fontSize: '1.5rem',
-                    fontWeight: '600',
-                    color: '#111827'
-                }}>
-                    Your Contribution Details
-                </h3>
-                <p style={{
-                    margin: '0',
-                    color: '#6b7280',
-                    fontSize: '0.875rem'
-                }}>
-                    Tell us about your gift contribution
-                </p>
-            </div>
-            
-            <div style={{ marginBottom: '24px' }}>
-                <label style={{
-                    display: 'block',
-                    marginBottom: '8px',
-                    fontWeight: '500',
-                    color: '#374151',
-                    fontSize: '0.875rem'
-                }}>
-                    Your Name
-                </label>
-                <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    placeholder="Enter your name"
-                    style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        fontSize: '1rem',
-                        transition: 'all 0.2s',
-                        boxSizing: 'border-box'
-                    }}
-                />
+        <>
+            <div className="sender-flow-nav">
+                <button className="sender-flow-nav-back" onClick={handleClosePayment}>
+                    <span style={{ fontSize: 18, lineHeight: 1 }}>←</span> Back
+                </button>
+                <span className="sender-flow-nav-title">Your Contribution</span>
+                <span className="sender-flow-nav-spacer" />
             </div>
 
-            <div style={{ marginBottom: '24px' }}>
-                <label style={{
-                    display: 'block',
-                    marginBottom: '8px',
-                    fontWeight: '500',
-                    color: '#374151',
-                    fontSize: '0.875rem'
-                }}>
-                    Contribution Amount
-                </label>
-                <div style={{
-                    display: 'flex',
-                    gap: '8px'
-                }}>
-                    <select
-                        value={formData.currency}
-                        onChange={(e) => setFormData({...formData, currency: e.target.value})}
-                        style={{
-                            padding: '12px 16px',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '8px',
-                            background: '#f9fafb',
-                            fontSize: '1rem',
-                            minWidth: '80px'
-                        }}
-                    >
-                        <option value="USD">USD</option>
-                        <option value="EUR">EUR</option>
-                        <option value="GBP">GBP</option>
-                        <option value="JPY">JPY</option>
-                        <option value="CAD">CAD</option>
-                        <option value="AUD">AUD</option>
-                        <option value="CHF">CHF</option>
-                        <option value="CNY">CNY</option>
-                    </select>
+            <StepDots current={1} total={3} />
+
+            <div className="sender-flow-body">
+                {/* Wish summary */}
+                <div className="sender-wish-summary">
+                    {thisWish.noteUrl
+                        ? <img src={thisWish.noteUrl} alt={thisWish.title} className="sender-wish-summary-thumb" />
+                        : <div className="sender-wish-summary-thumb" />}
+                    <div>
+                        <p className="sender-wish-summary-name">{thisWish.title}</p>
+                        <p className="sender-wish-summary-raised">{fmtAmount(thisWish)} · {pct(thisWish)}%</p>
+                    </div>
+                </div>
+
+                {/* Name */}
+                <div className="sender-field">
+                    <label className="sender-label">Your Name</label>
                     <input
-                        type="number"
-                        value={formData.amount}
-                        onChange={(e) => setFormData({...formData, amount: e.target.value})}
-                        placeholder="0.00"
-                        min="0"
-                        step="0.01"
-                        style={{
-                            flex: 1,
-                            padding: '12px 16px',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '8px',
-                            fontSize: '1rem',
-                            transition: 'all 0.2s',
-                            boxSizing: 'border-box'
-                        }}
+                        className="sender-input"
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        placeholder="Sarah Johnson"
                     />
+                </div>
+
+                {/* Amount */}
+                <div className="sender-field">
+                    <label className="sender-label">Contribution Amount</label>
+                    <div className="sender-amount-row">
+                        <select
+                            className="sender-currency-pill"
+                            value={formData.currency}
+                            onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                        >
+                            {['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY'].map((c) => (
+                                <option key={c} value={c}>{c}</option>
+                            ))}
+                        </select>
+                        <input
+                            className="sender-amount-input"
+                            type="number"
+                            value={formData.amount}
+                            onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                            placeholder="0"
+                            min="0"
+                            step="1"
+                        />
+                    </div>
+                </div>
+
+                {/* Quick select */}
+                <div className="sender-field">
+                    <label className="sender-label">Quick select</label>
+                    <div className="sender-quick-chips">
+                        {QUICK_AMOUNTS.map((amt) => (
+                            <button
+                                key={amt}
+                                className={`sender-chip${Number(formData.amount) === amt ? ' selected' : ''}`}
+                                onClick={() => setFormData({ ...formData, amount: String(amt) })}
+                            >
+                                ${amt}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
-            <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                gap: '16px',
-                marginTop: '32px'
-            }}>
+            <div className="sender-flow-footer">
+                <button className="sender-btn-secondary" onClick={handleClosePayment}>Cancel</button>
                 <button
-                    onClick={handleClosePayment}
-                    style={{
-                        padding: '12px 24px',
-                        borderRadius: '8px',
-                        fontWeight: '500',
-                        fontSize: '0.875rem',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        border: 'none',
-                        minWidth: '120px',
-                        background: '#f3f4f6',
-                        color: '#374151',
-                        border: '1px solid #d1d5db'
-                    }}
-                >
-                    Cancel
-                </button>
-                <button
+                    className="sender-btn-large"
                     onClick={handleNextStep}
                     disabled={!formData.name || !formData.amount}
-                    style={{
-                        padding: '12px 24px',
-                        borderRadius: '8px',
-                        fontWeight: '500',
-                        fontSize: '0.875rem',
-                        cursor: !formData.name || !formData.amount ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.2s',
-                        border: 'none',
-                        minWidth: '120px',
-                        background: (!formData.name || !formData.amount) ? '#9ca3af' : '#3b82f6',
-                        color: 'white',
-                        opacity: (!formData.name || !formData.amount) ? 0.5 : 1
-                    }}
                 >
                     Continue to Message
                 </button>
             </div>
-        </div>
+        </>
     );
 
+    // ── Step 2: Message ────────────────────────────────────────────
     const renderStep2 = () => (
-        <div style={{ padding: '32px' }}>
-            <div style={{
-                textAlign: 'center',
-                marginBottom: '32px'
-            }}>
-                <h3 style={{
-                    margin: '0 0 8px 0',
-                    fontSize: '1.5rem',
-                    fontWeight: '600',
-                    color: '#111827'
-                }}>
-                    Add a Personal Touch
-                </h3>
-                <p style={{
-                    margin: '0',
-                    color: '#6b7280',
-                    fontSize: '0.875rem'
-                }}>
-                    Choose how you'd like to personalize your contribution
+        <>
+            <div className="sender-flow-nav">
+                <button className="sender-flow-nav-back" onClick={handlePrevStep}>
+                    <span style={{ fontSize: 18, lineHeight: 1 }}>←</span> Back
+                </button>
+                <span className="sender-flow-nav-title">Add a Personal Touch</span>
+                <span className="sender-flow-nav-spacer" />
+            </div>
+
+            <StepDots current={2} total={3} />
+
+            <div className="sender-flow-body">
+                <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>
+                    How would you like to send your gift?
                 </p>
-            </div>
-            
-            <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '16px',
-                marginBottom: '32px'
-            }}>
-                {/* Option 1: No Message */}
+
+                {/* Option: No message */}
                 <div
-                    onClick={() => setFormData({...formData, messageType: 'none'})}
-                    style={{
-                        padding: '20px',
-                        border: `2px solid ${formData.messageType === 'none' ? '#3b82f6' : '#e5e7eb'}`,
-                        borderRadius: '12px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        background: formData.messageType === 'none' ? '#f0f9ff' : 'white'
-                    }}
+                    className={`sender-msg-option${formData.messageType === 'none' ? ' selected' : ''}`}
+                    onClick={() => setFormData({ ...formData, messageType: 'none' })}
                 >
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '16px'
-                    }}>
-                        <div style={{
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '50%',
-                            border: `2px solid ${formData.messageType === 'none' ? '#3b82f6' : '#d1d5db'}`,
-                            background: formData.messageType === 'none' ? '#3b82f6' : 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                        }}>
-                            {formData.messageType === 'none' && (
-                                <div style={{
-                                    width: '8px',
-                                    height: '8px',
-                                    borderRadius: '50%',
-                                    background: 'white'
-                                }}></div>
-                            )}
-                        </div>
+                    <div className="sender-msg-option-top">
+                        <div className={`sender-radio${formData.messageType === 'none' ? ' checked' : ''}`} />
                         <div>
-                            <h4 style={{
-                                margin: '0 0 4px 0',
-                                fontSize: '1.125rem',
-                                fontWeight: '600',
-                                color: '#111827'
-                            }}>
-                                No Message
-                            </h4>
-                            <p style={{
-                                margin: '0',
-                                fontSize: '0.875rem',
-                                color: '#6b7280'
-                            }}>
-                                Send your contribution without any additional message
-                            </p>
+                            <p className="sender-msg-option-title">No Message</p>
+                            <p className="sender-msg-option-sub">Send your contribution anonymously</p>
                         </div>
                     </div>
                 </div>
 
-                {/* Option 2: Simple Message */}
+                {/* Option: Simple message */}
                 <div
-                    onClick={() => setFormData({...formData, messageType: 'simple'})}
-                    style={{
-                        padding: '20px',
-                        border: `2px solid ${formData.messageType === 'simple' ? '#3b82f6' : '#e5e7eb'}`,
-                        borderRadius: '12px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        background: formData.messageType === 'simple' ? '#f0f9ff' : 'white'
-                    }}
+                    className={`sender-msg-option${formData.messageType === 'simple' ? ' selected' : ''}`}
+                    onClick={() => setFormData({ ...formData, messageType: 'simple' })}
                 >
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '16px'
-                    }}>
-                        <div style={{
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '50%',
-                            border: `2px solid ${formData.messageType === 'simple' ? '#3b82f6' : '#d1d5db'}`,
-                            background: formData.messageType === 'simple' ? '#3b82f6' : 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                        }}>
-                            {formData.messageType === 'simple' && (
-                                <div style={{
-                                    width: '8px',
-                                    height: '8px',
-                                    borderRadius: '50%',
-                                    background: 'white'
-                                }}></div>
-                            )}
-                        </div>
+                    <div className="sender-msg-option-top">
+                        <div className={`sender-radio${formData.messageType === 'simple' ? ' checked' : ''}`} />
                         <div>
-                            <h4 style={{
-                                margin: '0 0 4px 0',
-                                fontSize: '1.125rem',
-                                fontWeight: '600',
-                                color: '#111827'
-                            }}>
-                                Simple Message
-                            </h4>
-                            <p style={{
-                                margin: '0',
-                                fontSize: '0.875rem',
-                                color: '#6b7280'
-                            }}>
-                                Add a short personal message to your contribution
-                            </p>
+                            <p className="sender-msg-option-title">Simple Message</p>
+                            <p className="sender-msg-option-sub">Write a personal note to the recipient</p>
                         </div>
                     </div>
+                    {formData.messageType === 'simple' && (
+                        <textarea
+                            className="sender-textarea"
+                            value={formData.description}
+                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                            placeholder="Write something thoughtful..."
+                        />
+                    )}
                 </div>
 
-                {/* Option 3: Card Builder */}
+                {/* Option: Design a card */}
                 <div
-                    onClick={() => setFormData({...formData, messageType: 'card'})}
-                    style={{
-                        padding: '20px',
-                        border: `2px solid ${formData.messageType === 'card' ? '#3b82f6' : '#e5e7eb'}`,
-                        borderRadius: '12px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        background: formData.messageType === 'card' ? '#f0f9ff' : 'white'
-                    }}
+                    className={`sender-msg-option${formData.messageType === 'card' ? ' selected' : ''}`}
+                    onClick={() => setFormData({ ...formData, messageType: 'card' })}
                 >
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '16px'
-                    }}>
-                        <div style={{
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '50%',
-                            border: `2px solid ${formData.messageType === 'card' ? '#3b82f6' : '#d1d5db'}`,
-                            background: formData.messageType === 'card' ? '#3b82f6' : 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                        }}>
-                            {formData.messageType === 'card' && (
-                                <div style={{
-                                    width: '8px',
-                                    height: '8px',
-                                    borderRadius: '50%',
-                                    background: 'white'
-                                }}></div>
-                            )}
-                        </div>
+                    <div className="sender-msg-option-top">
+                        <div className={`sender-radio${formData.messageType === 'card' ? ' checked' : ''}`} />
                         <div>
-                            <h4 style={{
-                                margin: '0 0 4px 0',
-                                fontSize: '1.125rem',
-                                fontWeight: '600',
-                                color: '#111827'
-                            }}>
-                                Design a Card
-                            </h4>
-                            <p style={{
-                                margin: '0',
-                                fontSize: '0.875rem',
-                                color: '#6b7280'
-                            }}>
-                                Create a personalized digital card with images and text
-                            </p>
+                            <p className="sender-msg-option-title">Design a Card</p>
+                            <p className="sender-msg-option-sub">Create a beautiful custom greeting card</p>
                         </div>
+                        {formData.messageType !== 'card' && (
+                            <span className="sender-msg-option-chev">›</span>
+                        )}
                     </div>
+                    {formData.messageType === 'card' && (
+                        <div onClick={(e) => e.stopPropagation()}>
+                            <SimpleCardBuilder
+                                cardData={formData}
+                                setCardData={setFormData}
+                            />
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* Show message input if simple message is selected */}
-            {formData.messageType === 'simple' && (
-                <div style={{ marginBottom: '24px' }}>
-                    <label style={{
-                        display: 'block',
-                        marginBottom: '8px',
-                        fontWeight: '500',
-                        color: '#374151',
-                        fontSize: '0.875rem'
-                    }}>
-                        Your Message
-                    </label>
-                    <textarea
-                        value={formData.description}
-                        onChange={(e) => setFormData({...formData, description: e.target.value})}
-                        placeholder="Add a personal message..."
-                        rows="4"
-                        style={{
-                            width: '100%',
-                            padding: '12px 16px',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '8px',
-                            fontSize: '1rem',
-                            fontFamily: 'inherit',
-                            resize: 'vertical',
-                            minHeight: '100px',
-                            transition: 'all 0.2s',
-                            boxSizing: 'border-box'
-                        }}
-                    />
-                </div>
-            )}
-
-            {/* Show card builder if card is selected */}
-            {formData.messageType === 'card' && (
-                <div style={{ marginBottom: '24px' }}>
-                    <PersonalForm
-                        formData={formData}
-                        setFormData={setFormData}
-                        setExpandedView={() => {}}
-                        isStepMode={true}
-                    />
-                </div>
-            )}
-
-            <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                gap: '16px',
-                marginTop: '32px'
-            }}>
-                <button
-                    onClick={handlePrevStep}
-                    style={{
-                        padding: '12px 24px',
-                        borderRadius: '8px',
-                        fontWeight: '500',
-                        fontSize: '0.875rem',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        border: 'none',
-                        minWidth: '120px',
-                        background: '#f3f4f6',
-                        color: '#374151',
-                        border: '1px solid #d1d5db'
-                    }}
-                >
-                    Back
-                </button>
-                <button
-                    onClick={handleNextStep}
-                    style={{
-                        padding: '12px 24px',
-                        borderRadius: '8px',
-                        fontWeight: '500',
-                        fontSize: '0.875rem',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        border: 'none',
-                        minWidth: '120px',
-                        background: '#3b82f6',
-                        color: 'white'
-                    }}
-                >
-                    Continue to Payment
-                </button>
+            <div className="sender-flow-footer">
+                <button className="sender-btn-secondary" onClick={handlePrevStep}>Back</button>
+                <button className="sender-btn-large" onClick={handleNextStep}>Continue to Payment</button>
             </div>
-        </div>
+        </>
     );
 
+    // ── Step 3: Payment ────────────────────────────────────────────
     const renderStep3 = () => (
-        <div style={{ padding: '32px' }}>
-            <div style={{
-                textAlign: 'center',
-                marginBottom: '32px'
-            }}>
-                <h3 style={{
-                    margin: '0 0 8px 0',
-                    fontSize: '1.5rem',
-                    fontWeight: '600',
-                    color: '#111827'
-                }}>
-                    Complete Your Payment
-                </h3>
-                <p style={{
-                    margin: '0',
-                    color: '#6b7280',
-                    fontSize: '0.875rem'
-                }}>
-                    Securely process your contribution
+        <>
+            <div className="sender-flow-nav">
+                <button className="sender-flow-nav-back" onClick={handlePrevStep}>
+                    <span style={{ fontSize: 18, lineHeight: 1 }}>←</span> Back
+                </button>
+                <span className="sender-flow-nav-title">Complete Payment</span>
+                <span className="sender-flow-nav-spacer" />
+            </div>
+
+            <StepDots current={3} total={3} />
+
+            <div className="sender-flow-body">
+                {/* Order summary */}
+                <div className="sender-order-card">
+                    <span className="sender-order-label">Order Summary</span>
+                    <div className="sender-order-main-row">
+                        <p className="sender-order-wish-name">{thisWish.title}</p>
+                        <span className="sender-order-amount">{formData.amount} {formData.currency}</span>
+                    </div>
+                    <div className="sender-order-divider" />
+                    <div className="sender-order-row">
+                        <span className="sender-order-row-label">From</span>
+                        <span className="sender-order-row-value">{formData.name}</span>
+                    </div>
+                    <div className="sender-order-row">
+                        <span className="sender-order-row-label">Currency</span>
+                        <span className="sender-order-row-value">{formData.currency}</span>
+                    </div>
+                </div>
+
+                {/* Stripe payment form */}
+                <div>
+                    <GiftPaymentForm
+                        recipientId={recipient.stripeAccountId}
+                        giftAmount={formData.amount}
+                        giftCurrency={formData.currency}
+                        eventName={eventName}
+                        giftId={thisWish._id}
+                        eventId={event._id}
+                        getPaymentsData={getPaymentsData}
+                        senderName={formData.name}
+                        description={formData.description}
+                        cardHTML={formData.cardHTML}
+                        cardText={formData.cardText}
+                        backgroundImage={formData.backgroundImage}
+                        overlayImages={formData.overlayImages}
+                        idempotencyKey={intentKey}
+                    />
+                </div>
+
+                <p className="sender-secure-note">
+                    🔒 Secured by Stripe · payments are encrypted
                 </p>
             </div>
-            
-            <div style={{
-                background: '#f9fafb',
-                borderRadius: '8px',
-                padding: '20px',
-                marginBottom: '24px'
-            }}>
-                <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '8px 0',
-                    borderBottom: '1px solid #e5e7eb'
-                }}>
-                    <span style={{
-                        color: '#6b7280',
-                        fontSize: '0.875rem'
-                    }}>
-                        Contribution to:
-                    </span>
-                    <span style={{
-                        fontWeight: '500',
-                        color: '#111827'
-                    }}>
-                        {thisWish.title}
-                    </span>
-                </div>
-                <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '8px 0',
-                    borderBottom: '1px solid #e5e7eb'
-                }}>
-                    <span style={{
-                        color: '#6b7280',
-                        fontSize: '0.875rem'
-                    }}>
-                        Amount:
-                    </span>
-                    <span style={{
-                        fontWeight: '500',
-                        color: '#111827'
-                    }}>
-                        {formData.amount} {formData.currency}
-                    </span>
-                </div>
-                <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '8px 0'
-                }}>
-                    <span style={{
-                        color: '#6b7280',
-                        fontSize: '0.875rem'
-                    }}>
-                        From:
-                    </span>
-                    <span style={{
-                        fontWeight: '500',
-                        color: '#111827'
-                    }}>
-                        {formData.name}
-                    </span>
-                </div>
-            </div>
-
-            <div style={{ margin: '24px 0' }}>
-                <GiftPaymentForm
-                    recipientId={recipient.stripeAccountId}
-                    giftAmount={formData.amount}
-                    giftCurrency={formData.currency}
-                    eventName={eventName}
-                    giftId={thisWish._id}
-                    eventId={event._id}
-                    getPaymentsData={getPaymentsData}
-                    senderName={formData.name}
-                    description={formData.description}
-                    cardHTML={formData.cardHTML}
-                    cardText={formData.cardText}
-                    backgroundImage={formData.backgroundImage}
-                    overlayImages={formData.overlayImages}
-                    idempotencyKey={intentKey}
-                />
-            </div>
-
-            <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                gap: '16px',
-                marginTop: '32px'
-            }}>
-                <button
-                    onClick={handlePrevStep}
-                    style={{
-                        padding: '12px 24px',
-                        borderRadius: '8px',
-                        fontWeight: '500',
-                        fontSize: '0.875rem',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        border: 'none',
-                        minWidth: '120px',
-                        background: '#f3f4f6',
-                        color: '#374151',
-                        border: '1px solid #d1d5db'
-                    }}
-                >
-                    Back
-                </button>
-            </div>
-        </div>
+        </>
     );
 
+    // ── Wishlist page ──────────────────────────────────────────────
     return (
+        <div className="sender-page">
+            {/* Hero */}
+            {event.imageUrl ? (
+                <div className="sender-hero">
+                    <img src={event.imageUrl} alt={event.name} />
+                    <div className="sender-hero-overlay">
+                        <h1 className="sender-hero-title">{event.name}</h1>
+                        {event.description && <p className="sender-hero-sub">{event.description}</p>}
+                    </div>
+                </div>
+            ) : (
+                <div className="sender-hero-placeholder">
+                    <h1 className="sender-hero-title" style={{ color: '#fff', margin: '0 0 4px' }}>{event.name}</h1>
+                    {event.description && <p style={{ color: 'rgba(255,255,255,0.8)', margin: 0, fontSize: 13 }}>{event.description}</p>}
+                </div>
+            )}
 
-        <div className="container">
-            <div className="wrapper">
-                <CoverImage
-                    imageUrl={event.imageUrl}
-                />
-                <div style={{ padding: "8px" }}>
-                    <h1>{event.name}</h1>
-                    <h3>{event.description}</h3>
-                    {!thisWish._id &&
-                        <div className="cardspace">
-                            {wishes.map((wish, idx) => {
-                                const paidConvert = Math.ceil(wish.paid / wish.price * wish.amount)
-                                const remainingVal = wish.price - wish.paid
-                                const data = [
-                                    { name: "PAID", value: wish.paid, color: "#143950" },
-                                    { name: "REMAINING", value: remainingVal, color: "white" }
-                                ]
-                                return (
-                                    <div
-                                        key={idx}
-                                        className='card'
-                                        style={{ position: "relative", overflow: "hidden" }}
-                                    >
+            {/* Wishes grid */}
+            {!thisWish._id && (
+                <>
+                    <div className="sender-section-hdr">
+                        <h2 className="sender-section-title">Wishes</h2>
+                        <span className="sender-section-meta">
+                            {wishes.length} {wishes.length === 1 ? 'wish' : 'wishes'}
+                            {wishes.reduce((sum, w) => sum + (w.senders?.length || 0), 0) > 0
+                                ? ` · ${wishes.reduce((sum, w) => sum + (w.senders?.length || 0), 0)} contributors`
+                                : ''}
+                        </span>
+                    </div>
 
-                                        {wish.noteUrl && (
-                                            <img
-                                                src={wish.noteUrl}
-                                                alt="note image"
-                                                style={{
-                                                    position: "absolute",
-                                                    height: "100%",
-                                                    zIndex: "-1",
-                                                    objectFit: "cover",
-                                                    left: "50%",
-                                                    top: "50%",
-                                                    transform: "translate(-50%, -50%)"
-                                                }}
-                                            />
-                                        )}
+                    <div className="sender-grid">
+                        {wishes.map((wish, idx) => {
+                            const progress = pct(wish);
+                            const senderCount = wish.senders?.length || 0;
+                            return (
+                                <div key={idx} className="sender-wish-card">
+                                    {wish.noteUrl
+                                        ? <img src={wish.noteUrl} alt={wish.title} className="sender-wish-card-img" />
+                                        : <div className="sender-wish-card-img-placeholder" />}
 
-                                        <div style={{ backgroundColor: "white", padding: "16px", opacity: "0.9" }}>
-                                            <h3>{wish.title}</h3>
-                                            <h4>
-                                                {paidConvert ? paidConvert : wish.paid}
-                                                {wish.currency ? wish.currency : 'USD'}
-                                                {' of '}
-                                                {wish.amount ? wish.amount : wish.price}
-                                                {wish.currency ? wish.currency : 'USD'}
-                                            </h4>
-                                            <p>
-                                                {wish.senders && wish.senders.length}
-                                                {wish.senders ?
-                                                    ` contributer${wish.senders.length < 2 ? '' : 's'}` :
-                                                    "no contributions yet"}
-                                            </p>
+                                    <div className="sender-wish-card-body">
+                                        <p className="sender-wish-title">{wish.title}</p>
+
+                                        <div className="sender-progress-wrap">
+                                            <div className="sender-progress-bar">
+                                                <div className="sender-progress-fill" style={{ width: `${progress}%` }} />
+                                            </div>
+                                            <div className="sender-progress-meta">
+                                                <span className="sender-progress-paid">{fmtAmount(wish)}</span>
+                                                <span className="sender-progress-senders">
+                                                    {senderCount} {senderCount === 1 ? 'contributor' : 'contributors'}
+                                                </span>
+                                            </div>
                                         </div>
-
-                                        <div className='doublegapver' />
-
-                                        <div style={{ opacity: "0.9" }}>
-                                            <ResponsiveContainer
-                                                width="100%"
-                                                height={160}
-                                            >
-                                                <PieChart>
-                                                    <Pie
-                                                        data={data}
-                                                        cx="50%"
-                                                        cy="50%"
-                                                        innerRadius={0}
-                                                        outerRadius={80}
-                                                        dataKey="value"
-                                                        paddingAngle={0}
-                                                    >
-                                                        {data.map((entry, index) => (
-                                                            <Cell
-                                                                key={entry.name}
-                                                                fill={entry.color}
-                                                            />
-                                                        ))}
-                                                    </Pie>
-                                                </PieChart>
-                                            </ResponsiveContainer>
-                                        </div>
-
-                                        <div className='doublegapver' />
 
                                         <button
-                                            onClick={() => { setThisWish(wish); setIntentKey(`${wish._id}-${Date.now()}`); }}
-                                            style={{ width: "100%" }}
+                                            className="sender-btn-primary"
+                                            onClick={() => {
+                                                setThisWish(wish);
+                                                setIntentKey(`${wish._id}-${Date.now()}`);
+                                            }}
                                         >
-                                            {"Contribute"}
+                                            Contribute
                                         </button>
-
                                     </div>
-                                )
-
-                            })}
-                        </div>
-                    }
-
-                    {thisWish._id && event &&
-                        <div style={{
-                            background: 'white',
-                            borderRadius: '12px',
-                            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
-                            margin: '20px 0',
-                            overflow: 'hidden'
-                        }}>
-                            <div style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                padding: '24px 32px',
-                                borderBottom: '1px solid #e5e7eb',
-                                background: '#f9fafb'
-                            }}>
-                                <div>
-                                    <h3 style={{
-                                        margin: '0',
-                                        fontSize: '1.5rem',
-                                        fontWeight: '600',
-                                        color: '#111827'
-                                    }}>
-                                        Contribute to {thisWish.title}
-                                    </h3>
-                                    <p style={{
-                                        margin: '4px 0 0 0',
-                                        color: '#6b7280',
-                                        fontSize: '0.875rem'
-                                    }}>
-                                        Complete your gift contribution
-                                    </p>
                                 </div>
-                                <button
-                                    onClick={handleClosePayment}
-                                    style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        fontSize: '24px',
-                                        color: '#6b7280',
-                                        cursor: 'pointer',
-                                        padding: '8px',
-                                        borderRadius: '6px',
-                                        transition: 'all 0.2s'
-                                    }}
-                                >
-                                    ×
-                                </button>
-                            </div>
+                            );
+                        })}
+                    </div>
+                </>
+            )}
 
-                            {renderStepIndicator()}
-
-                            {currentStep === 1 && renderStep1()}
-                            {currentStep === 2 && renderStep2()}
-                            {currentStep === 3 && renderStep3()}
-                        </div>
-                    }
-
-                    <div className='doublegapver' />
-                    <div className='doublegapver' />
-                    <div className='doublegapver' />
+            {/* Contribution flow */}
+            {thisWish._id && event._id && (
+                <div className="sender-flow-wrap">
+                    {currentStep === 1 && renderStep1()}
+                    {currentStep === 2 && renderStep2()}
+                    {currentStep === 3 && renderStep3()}
                 </div>
-            </div>
+            )}
         </div>
-
-    )
-}
+    );
+};
 
 export default Note;

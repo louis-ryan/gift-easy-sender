@@ -1,3 +1,4 @@
+import '../css/sender.css';
 import '../css/buttons.css';
 import '../css/card.css';
 import '../css/fonts.css';
