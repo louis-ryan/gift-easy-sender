@@ -5,7 +5,7 @@ import CheckoutForm from './CheckoutForm';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
-const GiftPaymentForm = ({ giftAmount, giftCurrency, eventName, giftId, senderName, description, cardHTML, cardText, backgroundImage, overlayImages, idempotencyKey }) => {
+const GiftPaymentForm = ({ giftAmount, giftCurrency, eventName, giftId, senderName, message, photoUrls, gifUrl, contact, idempotencyKey }) => {
     const [clientSecret, setClientSecret] = useState(null);
     const [intentError, setIntentError] = useState(null);
     const intentCreated = useRef(false);
@@ -29,11 +29,11 @@ const GiftPaymentForm = ({ giftAmount, giftCurrency, eventName, giftId, senderNa
                         // gift-ease works out who gets paid from the wish, server-side
                         giftId,
                         senderName,
-                        description,
-                        cardHTML,
-                        cardText,
-                        backgroundImage,
-                        overlayImages
+                        // Saved by gift-ease and shown only to the giftee
+                        message,
+                        photoUrls,
+                        gifUrl,
+                        ...contact,
                     }),
                 });
 
@@ -50,11 +50,11 @@ const GiftPaymentForm = ({ giftAmount, giftCurrency, eventName, giftId, senderNa
     }, [idempotencyKey]);
 
     if (intentError) {
-        return <div className="text-center py-4" style={{ color: '#ef4444' }}>Failed to load payment form: {intentError}</div>;
+        return <div className="sender-form-status error">Failed to load payment form: {intentError}</div>;
     }
 
     if (!clientSecret) {
-        return <div className="text-center py-4">Loading payment form...</div>;
+        return <div className="sender-form-status"><span className="sender-spinner" /> Loading payment form…</div>;
     }
 
     return (
@@ -64,14 +64,16 @@ const GiftPaymentForm = ({ giftAmount, giftCurrency, eventName, giftId, senderNa
                 clientSecret,
                 appearance: {
                     theme: 'stripe',
+                    // Matches the autumn palette in css/sender.css
                     variables: {
-                        colorPrimary: '#0055FF',
+                        colorPrimary: '#B4532A',
                         colorBackground: '#ffffff',
-                        colorText: '#30313d',
-                        colorDanger: '#df1b41',
-                        fontFamily: 'system-ui, sans-serif',
+                        colorText: '#3B2A20',
+                        colorTextSecondary: '#7A6352',
+                        colorDanger: '#C0392B',
+                        fontFamily: 'Inter, system-ui, sans-serif',
                         spacingUnit: '4px',
-                        borderRadius: '4px',
+                        borderRadius: '10px',
                     },
                 },
             }}
@@ -80,6 +82,7 @@ const GiftPaymentForm = ({ giftAmount, giftCurrency, eventName, giftId, senderNa
                 giftAmount={giftAmount}
                 giftCurrency={giftCurrency}
                 eventName={eventName}
+                giftId={giftId}
             />
         </Elements>
     );

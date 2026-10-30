@@ -1,63 +1,53 @@
 import { useState, useEffect } from 'react';
-import fetch from 'isomorphic-unfetch';
+import Head from 'next/head';
 import { useRouter } from 'next/router';
 import GiftPaymentForm from '../../../components/GiftPaymentForm';
-import SimpleCardBuilder from '../../../components/SimpleCardBuilder';
+import MessageComposer from '../../../components/MessageComposer';
+import ContactField, { isValidContact, contactPayload } from '../../../components/ContactField';
+import {
+    API, CURRENCIES, MIN_GIFT, quickAmounts, wishCurrency, wishGoal, roundMoney,
+    formatMoney, formatShort, formatApprox, convert,
+} from '../../../utils/money';
 
-const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY'];
-// Mirrors MIN_GIFT in gift-ease's utils/fees.js, which enforces it
-const MIN_GIFT = { USD: 5, EUR: 5, GBP: 5, JPY: 500, CAD: 5, AUD: 5, CHF: 5, CNY: 30 };
-const QUICK_AMOUNTS = { JPY: [1000, 2500, 5000, 10000], CNY: [50, 100, 250, 500] };
-const DEFAULT_QUICK_AMOUNTS = [10, 25, 50, 100];
-
-// Mirrors gift-ease's utils/wishGoal.js: a wish's goal is `amount` in its own `currency`;
-// older wishes only have `price`, in USD
-const wishCurrency = (wish) => (wish.amount && wish.currency ? wish.currency : 'USD').toUpperCase();
-const wishGoal = (wish) => parseFloat(wish.amount || wish.price) || 0;
-const roundMoney = (value) => Math.round(value * 100) / 100;
-const formatChip = (amount, currency) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount);
+const EMPTY_MESSAGE = { message: '', photoUrls: [], gifUrl: '' };
+const EMPTY_CONTACT = { method: '', countryCode: '44', phone: '', email: '', touched: false };
+const VIEW_CURRENCY_KEY = 'wishlistagogo:viewCurrency';
 
 const Note = () => {
     const [event, setEvent] = useState({});
     const [wishes, setWishes] = useState([]);
+    const [rates, setRates] = useState(null);
+    // The currency the sender sees everything in. Starts as the giftee's default; wishes
+    // in other currencies show approximate conversions
+    const [viewCurrency, setViewCurrency] = useState(null);
     const [thisWish, setThisWish] = useState({});
     const [intentKey, setIntentKey] = useState(null);
     const [currentStep, setCurrentStep] = useState(1);
-    const [formData, setFormData] = useState({
-        name: '',
-        description: '',
-        amount: '',
-        currency: 'USD',
-        messageType: 'none',
-        cardHTML: '',
-        cardText: '',
-        backgroundImage: '',
-        overlayImages: [],
-    });
+    const [formData, setFormData] = useState({ name: '', amount: '', currency: 'USD' });
+    const [contact, setContact] = useState(EMPTY_CONTACT);
+    const [messageData, setMessageData] = useState(EMPTY_MESSAGE);
+    const [uploading, setUploading] = useState(false);
 
     const router = useRouter();
     const eventName = router.query.id;
+    // Set by the success page: the wish they just gave to and how much, for a brief highlight
+    const { gave, gaveAmount, gaveCurrency } = router.query;
 
     const organizePaymentsByGift = (payments, wishes) => {
-        const updatedWishes = [...wishes];
+        const updatedWishes = wishes.map((w) => ({ ...w, paid: 0, contributors: 0 }));
         payments.forEach((payment) => {
-            wishes.forEach((wish, idx) => {
-                if (payment.giftId === wish._id) {
-                    // Add to the running total; wishAmount is the contribution in the wish's currency
-                    updatedWishes[idx] = { ...updatedWishes[idx], paid: updatedWishes[idx].paid + payment.wishAmount };
-                }
-            });
+            const wish = updatedWishes.find((w) => w._id === payment.giftId);
+            if (!wish) return;
+            // wishAmount is the contribution in the wish's own currency
+            wish.paid += payment.wishAmount;
+            wish.contributors += 1;
         });
         setWishes(updatedWishes);
     };
 
     const getPaymentsData = async (eventId, wishes) => {
         try {
-            const res = await fetch(
-                `${process.env.NEXT_PUBLIC_REGISTRY_URL}/api/getStripePaymentsForEvent?eventId=${eventId}`,
-                { method: 'GET', credentials: 'include', headers: { 'Content-Type': 'application/json' } }
-            );
+            const res = await fetch(`${API}/api/getStripePaymentsForEvent?eventId=${eventId}`);
             if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
             const { payments } = await res.json();
             organizePaymentsByGift(payments, wishes);
@@ -67,37 +57,55 @@ const Note = () => {
     };
 
     const getWishesData = async (eventId) => {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_REGISTRY_URL}/api/getNotesBy/${eventId}`);
+        const res = await fetch(`${API}/api/getNotesBy/${eventId}`);
         const { noteData } = await res.json();
-        const withPaid = noteData.map((n) => ({ ...n, price: parseFloat(n.price), paid: 0 }));
+        const withPaid = noteData.map((n) => ({ ...n, price: parseFloat(n.price), paid: 0, contributors: 0 }));
         setWishes(withPaid);
         getPaymentsData(eventId, withPaid);
     };
 
-    const getEventData = async (name) => {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_REGISTRY_URL}/api/getEventBy/${name}`);
-        const { eventData } = await res.json();
+    const getEventData = async (uri) => {
+        const res = await fetch(`${API}/api/getEventBy/${uri}`);
+        const { eventData, gifteeCurrency } = await res.json();
         setEvent(eventData);
+        const saved = typeof window !== 'undefined' && window.localStorage.getItem(VIEW_CURRENCY_KEY);
+        const initial = CURRENCIES.includes(saved) ? saved : (gifteeCurrency || 'USD').toUpperCase();
+        setViewCurrency(CURRENCIES.includes(initial) ? initial : 'USD');
         getWishesData(eventData._id);
     };
 
     useEffect(() => {
         if (!eventName) return;
         getEventData(eventName);
-    }, [router]);
+        fetch(`${API}/api/rates`).then((r) => r.json()).then((d) => setRates(d.rates)).catch(() => setRates(null));
+    }, [eventName]);
+
+    const changeViewCurrency = (cur) => {
+        setViewCurrency(cur);
+        try { window.localStorage.setItem(VIEW_CURRENCY_KEY, cur); } catch {}
+    };
 
     const handleNextStep = () => {
         // A fresh key each time the sender reaches payment: they may have gone back and
         // changed the amount or currency, and Stripe rejects a reused key with new details
         if (currentStep === 2) setIntentKey(`${thisWish._id}-${Date.now()}`);
         setCurrentStep((s) => s + 1);
+        if (typeof window !== 'undefined') window.scrollTo({ top: 0 });
     };
     const handlePrevStep = () => setCurrentStep((s) => s - 1);
+
+    const startContribution = (wish) => {
+        setThisWish(wish);
+        setFormData((f) => ({ ...f, amount: '', currency: viewCurrency || wishCurrency(wish) }));
+        if (typeof window !== 'undefined') window.scrollTo({ top: 0 });
+    };
 
     const handleClosePayment = () => {
         setThisWish({});
         setCurrentStep(1);
-        setFormData({ name: '', description: '', amount: '', currency: 'USD', messageType: 'none', cardHTML: '', cardText: '', backgroundImage: '', overlayImages: [] });
+        setFormData({ name: '', amount: '', currency: viewCurrency || 'USD' });
+        setContact(EMPTY_CONTACT);
+        setMessageData(EMPTY_MESSAGE);
     };
 
     const pct = (wish) => {
@@ -106,9 +114,19 @@ const Note = () => {
         return Math.min(100, Math.round(((wish.paid || 0) / goal) * 100));
     };
 
-    const fmtAmount = (wish) => {
+    // "€40 of €120" in the wish's currency, or "≈ $43 of $130" converted into the
+    // sender's chosen currency
+    const fmtProgress = (wish) => {
         const cur = wishCurrency(wish);
-        return `${roundMoney(wish.paid || 0)} ${cur} of ${wishGoal(wish)} ${cur}`;
+        const view = viewCurrency || cur;
+        if (view !== cur) {
+            const paid = convert(wish.paid || 0, cur, view, rates);
+            const goal = convert(wishGoal(wish), cur, view, rates);
+            if (paid !== null && goal !== null) {
+                return `${paid > 0 ? formatApprox(paid, view) : formatShort(0, view)} of ${formatApprox(goal, view)}`;
+            }
+        }
+        return `${formatShort(roundMoney(wish.paid || 0), cur)} of ${formatShort(wishGoal(wish), cur)}`;
     };
 
     // ── Step dots ──────────────────────────────────────────────────
@@ -122,6 +140,16 @@ const Note = () => {
 
     // Only flag the minimum once they've typed something
     const belowMinimum = formData.amount !== '' && !(parseFloat(formData.amount) >= MIN_GIFT[formData.currency]);
+    const step1Valid = formData.name.trim() && parseFloat(formData.amount) >= MIN_GIFT[formData.currency] && isValidContact(contact);
+
+    // What their gift adds towards the wish, when they pay in a different currency
+    const towardsWish = () => {
+        const amount = parseFloat(formData.amount);
+        const cur = wishCurrency(thisWish);
+        if (!(amount > 0) || formData.currency === cur) return null;
+        const converted = convert(amount, formData.currency, cur, rates);
+        return converted === null ? null : `${formatApprox(converted, cur)} towards this wish`;
+    };
 
     // ── Step 1: Amount ─────────────────────────────────────────────
     const renderStep1 = () => (
@@ -144,17 +172,20 @@ const Note = () => {
                         : <div className="sender-wish-summary-thumb" />}
                     <div>
                         <p className="sender-wish-summary-name">{thisWish.title}</p>
-                        <p className="sender-wish-summary-raised">{fmtAmount(thisWish)} · {pct(thisWish)}%</p>
+                        <p className="sender-wish-summary-raised">{fmtProgress(thisWish)} · {pct(thisWish)}%</p>
                     </div>
                 </div>
 
                 {/* Name */}
                 <div className="sender-field">
-                    <label className="sender-label">Your Name</label>
+                    <label className="sender-label" htmlFor="sender-name">Your Name</label>
                     <input
+                        id="sender-name"
                         className="sender-input"
                         type="text"
+                        autoComplete="name"
                         value={formData.name}
+                        maxLength={100}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         placeholder="Sarah Johnson"
                     />
@@ -162,20 +193,23 @@ const Note = () => {
 
                 {/* Amount */}
                 <div className="sender-field">
-                    <label className="sender-label">Contribution Amount</label>
+                    <label className="sender-label" htmlFor="sender-amount">Contribution Amount</label>
                     <div className="sender-amount-row">
                         <select
                             className="sender-currency-pill"
                             value={formData.currency}
                             onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                            aria-label="Currency"
                         >
                             {CURRENCIES.map((c) => (
                                 <option key={c} value={c}>{c}</option>
                             ))}
                         </select>
                         <input
+                            id="sender-amount"
                             className="sender-amount-input"
                             type="number"
+                            inputMode="decimal"
                             value={formData.amount}
                             onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                             placeholder="0"
@@ -183,8 +217,9 @@ const Note = () => {
                             step="1"
                         />
                     </div>
-                    <span style={{ fontSize: 12, color: belowMinimum ? '#ef4444' : 'var(--text-secondary, #71717A)' }}>
-                        Minimum gift {formatChip(MIN_GIFT[formData.currency], formData.currency)}
+                    <span className={`sender-hint${belowMinimum ? ' error' : ''}`}>
+                        Minimum gift {formatShort(MIN_GIFT[formData.currency], formData.currency)}
+                        {towardsWish() ? ` · ${towardsWish()}` : ''}
                     </span>
                 </div>
 
@@ -192,33 +227,41 @@ const Note = () => {
                 <div className="sender-field">
                     <label className="sender-label">Quick select</label>
                     <div className="sender-quick-chips">
-                        {(QUICK_AMOUNTS[formData.currency] || DEFAULT_QUICK_AMOUNTS).map((amt) => (
+                        {quickAmounts(formData.currency).map((amt) => (
                             <button
                                 key={amt}
+                                type="button"
                                 className={`sender-chip${Number(formData.amount) === amt ? ' selected' : ''}`}
                                 onClick={() => setFormData({ ...formData, amount: String(amt) })}
                             >
-                                {formatChip(amt, formData.currency)}
+                                {formatShort(amt, formData.currency)}
                             </button>
                         ))}
                     </div>
                 </div>
+
+                {/* Contact for thank-yous */}
+                <ContactField contact={contact} setContact={setContact} />
             </div>
 
             <div className="sender-flow-footer">
                 <button className="sender-btn-secondary" onClick={handleClosePayment}>Cancel</button>
                 <button
                     className="sender-btn-large"
-                    onClick={handleNextStep}
-                    disabled={!formData.name || !(parseFloat(formData.amount) >= MIN_GIFT[formData.currency])}
+                    onClick={() => {
+                        if (!isValidContact(contact)) { setContact({ ...contact, touched: true }); return; }
+                        handleNextStep();
+                    }}
+                    disabled={!step1Valid}
                 >
-                    Continue to Message
+                    Continue
                 </button>
             </div>
         </>
     );
 
-    // ── Step 2: Message ────────────────────────────────────────────
+    // ── Step 2: Message, photos, GIF ───────────────────────────────
+    const hasPersonalTouch = messageData.message.trim() || messageData.photoUrls.length || messageData.gifUrl;
     const renderStep2 = () => (
         <>
             <div className="sender-flow-nav">
@@ -232,76 +275,20 @@ const Note = () => {
             <StepDots current={2} total={3} />
 
             <div className="sender-flow-body">
-                <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>
-                    How would you like to send your gift?
-                </p>
-
-                {/* Option: No message */}
-                <div
-                    className={`sender-msg-option${formData.messageType === 'none' ? ' selected' : ''}`}
-                    onClick={() => setFormData({ ...formData, messageType: 'none' })}
-                >
-                    <div className="sender-msg-option-top">
-                        <div className={`sender-radio${formData.messageType === 'none' ? ' checked' : ''}`} />
-                        <div>
-                            <p className="sender-msg-option-title">No Message</p>
-                            <p className="sender-msg-option-sub">Send your contribution anonymously</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Option: Simple message */}
-                <div
-                    className={`sender-msg-option${formData.messageType === 'simple' ? ' selected' : ''}`}
-                    onClick={() => setFormData({ ...formData, messageType: 'simple' })}
-                >
-                    <div className="sender-msg-option-top">
-                        <div className={`sender-radio${formData.messageType === 'simple' ? ' checked' : ''}`} />
-                        <div>
-                            <p className="sender-msg-option-title">Simple Message</p>
-                            <p className="sender-msg-option-sub">Write a personal note to the recipient</p>
-                        </div>
-                    </div>
-                    {formData.messageType === 'simple' && (
-                        <textarea
-                            className="sender-textarea"
-                            value={formData.description}
-                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                            placeholder="Write something thoughtful..."
-                            maxLength={500}
-                        />
-                    )}
-                </div>
-
-                {/* Option: Design a card */}
-                <div
-                    className={`sender-msg-option${formData.messageType === 'card' ? ' selected' : ''}`}
-                    onClick={() => setFormData({ ...formData, messageType: 'card' })}
-                >
-                    <div className="sender-msg-option-top">
-                        <div className={`sender-radio${formData.messageType === 'card' ? ' checked' : ''}`} />
-                        <div>
-                            <p className="sender-msg-option-title">Design a Card</p>
-                            <p className="sender-msg-option-sub">Create a beautiful custom greeting card</p>
-                        </div>
-                        {formData.messageType !== 'card' && (
-                            <span className="sender-msg-option-chev">›</span>
-                        )}
-                    </div>
-                    {formData.messageType === 'card' && (
-                        <div onClick={(e) => e.stopPropagation()}>
-                            <SimpleCardBuilder
-                                cardData={formData}
-                                setCardData={setFormData}
-                            />
-                        </div>
-                    )}
-                </div>
+                <p className="sender-step-intro">All optional. Add a few words, some photos or a GIF.</p>
+                <MessageComposer
+                    value={messageData}
+                    onChange={setMessageData}
+                   
+                    onBusyChange={setUploading}
+                />
             </div>
 
             <div className="sender-flow-footer">
-                <button className="sender-btn-secondary" onClick={handlePrevStep}>Back</button>
-                <button className="sender-btn-large" onClick={handleNextStep}>Continue to Payment</button>
+                <button className="sender-btn-secondary" onClick={handleNextStep} disabled={uploading}>Skip</button>
+                <button className="sender-btn-large" onClick={handleNextStep} disabled={uploading}>
+                    {uploading ? 'Uploading…' : 'Continue'}
+                </button>
             </div>
         </>
     );
@@ -325,17 +312,25 @@ const Note = () => {
                     <span className="sender-order-label">Order Summary</span>
                     <div className="sender-order-main-row">
                         <p className="sender-order-wish-name">{thisWish.title}</p>
-                        <span className="sender-order-amount">{formData.amount} {formData.currency}</span>
+                        <span className="sender-order-amount">{formatMoney(parseFloat(formData.amount) || 0, formData.currency)}</span>
                     </div>
                     <div className="sender-order-divider" />
                     <div className="sender-order-row">
                         <span className="sender-order-row-label">From</span>
                         <span className="sender-order-row-value">{formData.name}</span>
                     </div>
-                    <div className="sender-order-row">
-                        <span className="sender-order-row-label">Currency</span>
-                        <span className="sender-order-row-value">{formData.currency}</span>
-                    </div>
+                    {hasPersonalTouch && (
+                        <div className="sender-order-row">
+                            <span className="sender-order-row-label">With</span>
+                            <span className="sender-order-row-value">
+                                {[
+                                    messageData.message.trim() && 'a message',
+                                    messageData.photoUrls.length && `${messageData.photoUrls.length} photo${messageData.photoUrls.length > 1 ? 's' : ''}`,
+                                    messageData.gifUrl && 'a GIF',
+                                ].filter(Boolean).join(', ')}
+                            </span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Stripe payment form */}
@@ -345,12 +340,11 @@ const Note = () => {
                         giftCurrency={formData.currency}
                         eventName={eventName}
                         giftId={thisWish._id}
-                        senderName={formData.name}
-                        description={formData.description}
-                        cardHTML={formData.cardHTML}
-                        cardText={formData.cardText}
-                        backgroundImage={formData.backgroundImage}
-                        overlayImages={formData.overlayImages}
+                        senderName={formData.name.trim()}
+                        message={messageData.message.trim()}
+                        photoUrls={messageData.photoUrls}
+                        gifUrl={messageData.gifUrl}
+                        contact={contactPayload(contact)}
                         idempotencyKey={intentKey}
                     />
                 </div>
@@ -362,49 +356,66 @@ const Note = () => {
         </>
     );
 
+    const totalContributors = wishes.reduce((sum, w) => sum + (w.contributors || 0), 0);
+
     // ── Wishlist page ──────────────────────────────────────────────
     return (
         <div className="sender-page">
-            {/* Hero */}
-            {event.imageUrl ? (
-                <div className="sender-hero">
-                    <img src={event.imageUrl} alt={event.name} />
-                    <div className="sender-hero-overlay">
-                        <h1 className="sender-hero-title">{event.name}</h1>
-                        {event.description && <p className="sender-hero-sub">{event.description}</p>}
-                    </div>
+            <Head>
+                <title>{event.name ? `${event.name} · Wishlistagogo` : 'Wishlistagogo'}</title>
+            </Head>
+
+            {/* Hero: the same cover the giftee sees (or the same placeholder) */}
+            <div className="sender-hero">
+                <img src={event.imageUrl || '/header_placeholder.webp'} alt="" />
+                <div className="sender-hero-overlay">
+                    <h1 className="sender-hero-title">{event.name}</h1>
+                    {event.description && <p className="sender-hero-sub">{event.description}</p>}
                 </div>
-            ) : (
-                <div className="sender-hero-placeholder">
-                    <h1 className="sender-hero-title" style={{ color: '#fff', margin: '0 0 4px' }}>{event.name}</h1>
-                    {event.description && <p style={{ color: 'rgba(255,255,255,0.8)', margin: 0, fontSize: 13 }}>{event.description}</p>}
-                </div>
-            )}
+            </div>
 
             {/* Wishes grid */}
             {!thisWish._id && (
                 <>
                     <div className="sender-section-hdr">
-                        <h2 className="sender-section-title">Wishes</h2>
-                        <span className="sender-section-meta">
-                            {wishes.length} {wishes.length === 1 ? 'wish' : 'wishes'}
-                            {wishes.reduce((sum, w) => sum + (w.senders?.length || 0), 0) > 0
-                                ? ` · ${wishes.reduce((sum, w) => sum + (w.senders?.length || 0), 0)} contributors`
-                                : ''}
-                        </span>
+                        <div>
+                            <h2 className="sender-section-title">Wishes</h2>
+                            <span className="sender-section-meta">
+                                {wishes.length} {wishes.length === 1 ? 'wish' : 'wishes'}
+                                {totalContributors > 0 ? ` · ${totalContributors} contributions` : ''}
+                            </span>
+                        </div>
+                        {viewCurrency && (
+                            <label className="sender-view-currency">
+                                <span>Show in</span>
+                                <select
+                                    className="sender-currency-pill"
+                                    value={viewCurrency}
+                                    onChange={(e) => changeViewCurrency(e.target.value)}
+                                    aria-label="Show amounts in"
+                                >
+                                    {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                            </label>
+                        )}
                     </div>
 
                     <div className="sender-grid">
-                        {wishes.map((wish, idx) => {
+                        {wishes.map((wish) => {
                             const progress = pct(wish);
-                            const senderCount = wish.senders?.length || 0;
+                            const justGave = gave === wish._id && gaveAmount && CURRENCIES.includes(String(gaveCurrency || '').toUpperCase());
                             return (
-                                <div key={idx} className="sender-wish-card">
+                                <div key={wish._id} className={`sender-wish-card${justGave ? ' just-gave' : ''}`}>
                                     {wish.noteUrl
                                         ? <img src={wish.noteUrl} alt={wish.title} className="sender-wish-card-img" />
                                         : <div className="sender-wish-card-img-placeholder" />}
 
                                     <div className="sender-wish-card-body">
+                                        {justGave && (
+                                            <span className="sender-gave-badge">
+                                                +{formatShort(parseFloat(gaveAmount), String(gaveCurrency).toUpperCase())} from you
+                                            </span>
+                                        )}
                                         <p className="sender-wish-title">{wish.title}</p>
 
                                         <div className="sender-progress-wrap">
@@ -412,22 +423,14 @@ const Note = () => {
                                                 <div className="sender-progress-fill" style={{ width: `${progress}%` }} />
                                             </div>
                                             <div className="sender-progress-meta">
-                                                <span className="sender-progress-paid">{fmtAmount(wish)}</span>
+                                                <span className="sender-progress-paid">{fmtProgress(wish)}</span>
                                                 <span className="sender-progress-senders">
-                                                    {senderCount} {senderCount === 1 ? 'contributor' : 'contributors'}
+                                                    {wish.contributors} {wish.contributors === 1 ? 'contributor' : 'contributors'}
                                                 </span>
                                             </div>
                                         </div>
 
-                                        <button
-                                            className="sender-btn-primary"
-                                            onClick={() => {
-                                                setThisWish(wish);
-                                                // Start in the wish's currency so contributions match its goal
-                                                const cur = wishCurrency(wish);
-                                                setFormData((f) => ({ ...f, currency: CURRENCIES.includes(cur) ? cur : 'USD' }));
-                                            }}
-                                        >
+                                        <button className="sender-btn-primary" onClick={() => startContribution(wish)}>
                                             Contribute
                                         </button>
                                     </div>

@@ -1,29 +1,36 @@
 /* ── Sender Design System ── */
 
 /* Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --bg: #F9FAFB;
-  --surface: #F4F4F5;
+  /* Cosy, autumn-inspired palette on a light base (same tokens as gift-ease's css/theme.css) */
+  --bg: #FBF6EE;            /* linen */
+  --surface: #F3EADD;       /* oat */
   --card: #FFFFFF;
-  --border: #E4E4E7;
-  --border-strong: #D4D4D8;
-  --text-primary: #18181B;
-  --text-secondary: #71717A;
-  --text-tertiary: #A1A1AA;
-  --text-muted: #D4D4D8;
-  --accent: #8B5CF6;
-  --accent-light: rgba(139, 92, 246, 0.06);
-  --accent-end: #EC4899;
-  --success: #10B981;
+  --card-warm: #FFFDF9;
+  --border: #E8DCC8;        /* light wicker */
+  --border-strong: #D9C7AC;
+  --text-primary: #3B2A20;  /* espresso */
+  --text-secondary: #7A6352;/* walnut */
+  --text-tertiary: #9C8574; /* driftwood */
+  --text-muted: #C9B8A6;
+  --accent: #B4532A;        /* exposed brick */
+  --accent-light: rgba(180, 83, 42, 0.07);
+  --accent-end: #C9733F;    /* a touch warmer, for the rare gradient */
+  --honey: #E9C46A;
+  --honey-soft: rgba(233, 196, 106, 0.22);
+  --wood: #A9744F;
+  --success: #5E7A4E;       /* moss */
+  --error: #C0392B;
   --radius-sm: 10px;
   --radius-md: 14px;
   --radius-lg: 16px;
   --radius-xl: 20px;
   --radius-pill: 100px;
-  --shadow-card: 0 2px 8px rgba(0,0,0,0.07);
-  --shadow-btn: 0 4px 16px rgba(139,92,246,0.3);
+  --shadow-card: 0 2px 10px rgba(91, 58, 33, 0.07);
+  --shadow-btn: 0 4px 14px rgba(180, 83, 42, 0.25);
+  --font-heading: 'Fraunces', 'Playfair Display', Georgia, serif;
 }
 
 /* Base */
@@ -62,7 +69,7 @@ body {
   padding: 20px;
 }
 .sender-hero-title {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-heading);
   font-size: 22px;
   font-weight: 700;
   color: #fff;
@@ -78,7 +85,7 @@ body {
 .sender-hero-placeholder {
   width: 100%;
   height: 220px;
-  background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--wood) 100%);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -93,7 +100,7 @@ body {
   padding: 20px 16px 0;
 }
 .sender-section-title {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-heading);
   font-size: 18px;
   font-weight: 700;
   color: var(--text-primary);
@@ -157,7 +164,7 @@ body {
 .sender-progress-fill {
   height: 100%;
   border-radius: 4px;
-  background: linear-gradient(to right, var(--accent), var(--accent-end));
+  background: var(--accent);
   transition: width 0.4s ease;
 }
 .sender-progress-meta {
@@ -177,12 +184,31 @@ body {
 }
 
 /* ── Buttons ── */
+/* buttons.css (left over from the original app) gives every <button> 16px/24px padding and
+   uppercase text. Sender buttons set their own height, so that padding squeezes the label
+   off-centre; reset it and centre the label instead. */
+.sender-btn-primary,
+.sender-btn-secondary,
+.sender-btn-large,
+.sender-chip,
+.sender-share-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 16px;
+  line-height: 1;
+  text-transform: none;
+  box-sizing: border-box;
+}
+
 .sender-btn-primary {
   width: 100%;
-  height: 40px;
+  height: 44px;
+  margin-top: 4px;
   border-radius: var(--radius-pill);
   border: none;
-  background: linear-gradient(to right, var(--accent), var(--accent-end));
+  background: var(--accent);
   color: #fff;
   font-family: 'Inter', sans-serif;
   font-size: 14px;
@@ -219,7 +245,7 @@ body {
   height: 52px;
   border-radius: var(--radius-pill);
   border: none;
-  background: linear-gradient(to right, var(--accent), var(--accent-end));
+  background: var(--accent);
   color: #fff;
   font-family: 'Inter', sans-serif;
   font-size: 15px;
@@ -401,6 +427,8 @@ body {
 .sender-chip {
   flex: 1;
   height: 40px;
+  padding: 0 8px;
+  white-space: nowrap;
   border-radius: var(--radius-pill);
   border: 1px solid var(--border);
   background: var(--card);
@@ -599,13 +627,13 @@ body {
   height: 56px;
   border-radius: var(--radius-pill);
   border: none;
-  background: linear-gradient(to right, var(--accent), var(--accent-end));
+  background: var(--accent);
   color: #fff;
   font-family: 'Inter', sans-serif;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(139,92,246,0.35);
+  box-shadow: var(--shadow-btn);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -646,11 +674,11 @@ body {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--wood) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px rgba(139,92,246,0.4);
+  box-shadow: var(--shadow-btn);
   color: #fff;
   font-size: 36px;
 }
@@ -662,7 +690,7 @@ body {
   padding: 60px 24px 40px;
 }
 .sender-success-title {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-heading);
   font-size: 32px;
   font-weight: 700;
   color: var(--text-primary);
@@ -725,7 +753,7 @@ body {
   height: 24px;
   padding: 0 10px;
   border-radius: var(--radius-pill);
-  background: rgba(13,148,136,0.12);
+  background: rgba(94,122,78,0.12);
   font-family: 'Inter', sans-serif;
   font-size: 11px;
   font-weight: 700;
@@ -773,9 +801,10 @@ body {
 }
 .sender-share-btn:hover { opacity: 0.8; }
 .sender-share-btn.whatsapp {
-  background: rgba(37,211,102,0.1);
-  color: #25D366;
-  border: 1px solid rgba(37,211,102,0.2);
+  background: rgba(37,163,90,0.1);
+  color: #1E7E46;
+  border: 1px solid rgba(37,163,90,0.25);
+  text-decoration: none;
 }
 .sender-share-btn.copy {
   background: var(--surface);
@@ -787,13 +816,13 @@ body {
   height: 56px;
   border-radius: var(--radius-pill);
   border: none;
-  background: linear-gradient(to right, var(--accent), var(--accent-end));
+  background: var(--accent);
   color: #fff;
   font-family: 'Inter', sans-serif;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(139,92,246,0.35);
+  box-shadow: var(--shadow-btn);
   margin-top: 8px;
   transition: opacity 0.2s;
   text-decoration: none;
@@ -802,3 +831,396 @@ body {
   justify-content: center;
 }
 .sender-back-btn:hover { opacity: 0.92; }
+
+/* ── Wishlist header: currency switcher ── */
+.sender-section-hdr {
+  gap: 12px;
+}
+.sender-view-currency {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.sender-view-currency .sender-currency-pill {
+  height: 36px;
+}
+
+/* Just-paid highlight, shown when coming back from the success page */
+.sender-wish-card.just-gave {
+  box-shadow: 0 0 0 2px var(--honey), var(--shadow-card);
+}
+.sender-gave-badge {
+  align-self: flex-start;
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--honey-soft);
+  color: #7A5512;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ── Form bits ── */
+.sender-hint {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+.sender-hint.error { color: var(--error); }
+.sender-hint.right { align-self: flex-end; }
+.sender-optional {
+  font-weight: 500;
+  color: var(--text-tertiary);
+  margin-left: 4px;
+}
+.sender-step-intro {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.sender-segmented {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  background: var(--surface);
+  border-radius: var(--radius-pill);
+}
+.sender-segment {
+  flex: 1;
+  height: 40px;
+  padding: 0 10px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: none;
+  cursor: pointer;
+}
+.sender-segment:hover { filter: none; }
+.sender-segment.selected {
+  background: var(--card);
+  color: var(--text-primary);
+  box-shadow: 0 1px 4px rgba(91, 58, 33, 0.12);
+}
+.sender-phone-row {
+  display: flex;
+  gap: 8px;
+}
+.sender-phone-row .sender-currency-pill {
+  flex-shrink: 0;
+}
+.sender-phone-row .sender-input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Message composer ── */
+.sender-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.sender-textbox {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--card-warm);
+  overflow: hidden;
+}
+.sender-textbox:focus-within { border-color: var(--accent); }
+.sender-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+.sender-tool {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  text-transform: none;
+  cursor: pointer;
+}
+.sender-tool:hover { background: var(--surface); filter: none; }
+.sender-tool.emoji { font-size: 20px; }
+.sender-tool-sep {
+  flex-shrink: 0;
+  width: 1px;
+  height: 22px;
+  margin: 0 4px;
+  background: var(--border);
+}
+.sender-textarea.bare {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  min-height: 110px;
+  font-size: 16px; /* 16px stops iOS zooming in on focus */
+}
+.sender-textarea.bare:focus { outline: none; box-shadow: none; }
+.sender-media-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.sender-thumb {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.sender-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.sender-thumb.gif {
+  width: auto;
+  min-width: 76px;
+  height: 110px;
+}
+.sender-thumb.gif img { width: auto; }
+.sender-thumb.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sender-thumb.add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 0;
+  border: 1.5px dashed var(--border-strong);
+  background: var(--card-warm);
+  color: var(--text-secondary);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: none;
+  cursor: pointer;
+}
+.sender-thumb.add span:first-child { font-size: 20px; color: var(--accent); }
+.sender-thumb.add:hover { border-color: var(--accent); filter: none; }
+.sender-thumb-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(59, 42, 32, 0.7);
+  color: #fff;
+  font-size: 16px;
+  line-height: 24px;
+  text-align: center;
+  cursor: pointer;
+}
+.sender-btn-secondary.small {
+  width: auto;
+  height: 44px;
+  padding: 0 18px;
+  align-self: flex-start;
+  border: 1.5px dashed var(--border-strong);
+  background: var(--card-warm);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+.sender-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: sender-spin 0.9s linear infinite;
+}
+@keyframes sender-spin { to { transform: rotate(360deg); } }
+
+/* ── GIF picker (bottom sheet on phones) ── */
+.sender-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(59, 42, 32, 0.4);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.sender-sheet {
+  width: 100%;
+  max-width: 520px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--card);
+  border-radius: 20px 20px 0 0;
+  box-sizing: border-box;
+}
+@media (min-width: 600px) {
+  .sender-sheet-backdrop { align-items: center; }
+  .sender-sheet { border-radius: 20px; }
+}
+.sender-sheet-head {
+  display: flex;
+  gap: 8px;
+}
+.sender-sheet-head .sender-input { flex: 1; }
+.sender-sheet-close {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 22px;
+  cursor: pointer;
+}
+.sender-gif-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  overflow-y: auto;
+}
+.sender-gif {
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface);
+  aspect-ratio: 1;
+  cursor: pointer;
+}
+.sender-gif img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.sender-giphy-credit {
+  margin: 0;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+}
+
+/* ── Checkout ── */
+.sender-checkout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.sender-btn-large.full { width: 100%; text-decoration: none; }
+.sender-form-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.sender-form-status.error {
+  justify-content: flex-start;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: #FBEAE7;
+  color: var(--error);
+}
+
+/* ── Success / thank-you screen ── */
+.sender-success-page {
+  position: relative;
+  overflow: hidden;
+  justify-content: center;
+}
+.sender-success-body {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  gap: 14px;
+  padding: 72px 24px 48px;
+}
+.sender-success-icon {
+  position: static;
+  transform: none;
+  width: 96px;
+  height: 96px;
+  margin-bottom: 8px;
+  background: var(--honey-soft);
+  box-shadow: 0 0 0 10px rgba(233, 196, 106, 0.12);
+  font-size: 46px;
+  animation: sender-pop 0.6s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.sender-success-icon.failed { background: #FBEAE7; color: var(--error); box-shadow: none; }
+.sender-success-icon.processing { background: var(--surface); color: var(--text-secondary); box-shadow: none; }
+.sender-success-sub { max-width: 360px; }
+.sender-success-sub strong { color: var(--text-primary); }
+.sender-success-body > .sender-btn-large { margin-top: 12px; }
+@keyframes sender-pop {
+  from { transform: scale(0.4); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.sender-confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.sender-confetti span {
+  position: absolute;
+  top: -20px;
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  opacity: 0;
+  animation-name: sender-fall;
+  animation-timing-function: ease-in;
+  animation-iteration-count: 2;
+  animation-fill-mode: forwards;
+}
+@keyframes sender-fall {
+  0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+  100% { opacity: 0.2; transform: translateY(105vh) rotate(540deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sender-confetti { display: none; }
+  .sender-success-icon { animation: none; }
+}
+
+/* Same framing as the giftee's dashboard cover (320px tall, centred) on wider screens */
+.sender-hero img { object-position: center; }
+@media (min-width: 640px) {
+  .sender-hero { height: 320px; }
+}
+
+/* buttons.css uppercases every <button>; the flow's text buttons shouldn't be */
+.sender-flow-nav-back { text-transform: none; }
