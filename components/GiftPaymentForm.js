@@ -16,7 +16,7 @@ const GiftPaymentForm = ({ recipientId, giftAmount, eventName, giftId, eventId, 
 
         const createIntent = async () => {
             try {
-                const response = await fetch('${process.env.NEXT_PUBLIC_REGISTRY_URL}/api/createPaymentIntent', {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_REGISTRY_URL}/api/createPaymentIntent`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
