@@ -5,7 +5,7 @@ import CheckoutForm from './CheckoutForm';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
-const GiftPaymentForm = ({ recipientId, giftAmount, eventName, giftId, eventId, getPaymentsData, senderName, description, cardHTML, cardText, backgroundImage, overlayImages, idempotencyKey }) => {
+const GiftPaymentForm = ({ giftAmount, giftCurrency, eventName, giftId, senderName, description, cardHTML, cardText, backgroundImage, overlayImages, idempotencyKey }) => {
     const [clientSecret, setClientSecret] = useState(null);
     const [intentError, setIntentError] = useState(null);
     const intentCreated = useRef(false);
@@ -25,9 +25,9 @@ const GiftPaymentForm = ({ recipientId, giftAmount, eventName, giftId, eventId, 
                     credentials: 'include',
                     body: JSON.stringify({
                         amount: giftAmount,
-                        recipientId,
+                        currency: giftCurrency,
+                        // gift-ease works out who gets paid from the wish, server-side
                         giftId,
-                        eventId,
                         senderName,
                         description,
                         cardHTML,
@@ -37,8 +37,8 @@ const GiftPaymentForm = ({ recipientId, giftAmount, eventName, giftId, eventId, 
                     }),
                 });
 
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || 'Failed to initialise payment');
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(data.error || `Failed to initialise payment (${response.status})`);
                 setClientSecret(data.clientSecret);
             } catch (err) {
                 console.error('Error creating payment intent:', err);
@@ -77,12 +77,9 @@ const GiftPaymentForm = ({ recipientId, giftAmount, eventName, giftId, eventId, 
             }}
         >
             <CheckoutForm
-                recipientId={recipientId}
                 giftAmount={giftAmount}
+                giftCurrency={giftCurrency}
                 eventName={eventName}
-                giftId={giftId}
-                eventId={eventId}
-                getPaymentsData={getPaymentsData}
             />
         </Elements>
     );

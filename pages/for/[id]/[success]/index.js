@@ -3,7 +3,11 @@ import Link from 'next/link';
 
 const Success = () => {
     const router = useRouter();
-    const { id } = router.query;
+    // Stripe adds redirect_status when a sender comes back from a redirect-based payment
+    // method; card payments arrive here without it, already confirmed
+    const { id, redirect_status: redirectStatus } = router.query;
+    const failed = redirectStatus === 'failed';
+    const processing = redirectStatus === 'processing';
 
     const handleCopyLink = () => {
         if (typeof window !== 'undefined') {
@@ -26,9 +30,15 @@ const Success = () => {
 
             {/* Body */}
             <div className="sender-success-body">
-                <h1 className="sender-success-title">Gift Sent!</h1>
+                <h1 className="sender-success-title">
+                    {failed ? 'Payment failed' : processing ? 'Payment processing' : 'Gift Sent!'}
+                </h1>
                 <p className="sender-success-sub">
-                    Your contribution was sent successfully. The recipient will love it!
+                    {failed
+                        ? "Your payment didn't go through and you haven't been charged. Please go back and try again."
+                        : processing
+                            ? "Your bank is still confirming the payment. It will show on the wishlist once it's complete."
+                            : 'Your contribution was sent successfully. The recipient will love it!'}
                 </p>
 
                 {/* Receipt card */}
@@ -37,7 +47,7 @@ const Success = () => {
                     <div className="sender-receipt-divider" />
                     <div className="sender-receipt-row">
                         <span className="sender-receipt-key">Status</span>
-                        <span className="sender-paid-badge">Paid</span>
+                        <span className="sender-paid-badge">{failed ? 'Failed' : processing ? 'Processing' : 'Paid'}</span>
                     </div>
                 </div>
 

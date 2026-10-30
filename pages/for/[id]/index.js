@@ -4,10 +4,21 @@ import { useRouter } from 'next/router';
 import GiftPaymentForm from '../../../components/GiftPaymentForm';
 import SimpleCardBuilder from '../../../components/SimpleCardBuilder';
 
-const QUICK_AMOUNTS = [10, 25, 50, 100];
+const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY'];
+// Mirrors MIN_GIFT in gift-ease's utils/fees.js, which enforces it
+const MIN_GIFT = { USD: 5, EUR: 5, GBP: 5, JPY: 500, CAD: 5, AUD: 5, CHF: 5, CNY: 30 };
+const QUICK_AMOUNTS = { JPY: [1000, 2500, 5000, 10000], CNY: [50, 100, 250, 500] };
+const DEFAULT_QUICK_AMOUNTS = [10, 25, 50, 100];
+
+// Mirrors gift-ease's utils/wishGoal.js: a wish's goal is `amount` in its own `currency`;
+// older wishes only have `price`, in USD
+const wishCurrency = (wish) => (wish.amount && wish.currency ? wish.currency : 'USD').toUpperCase();
+const wishGoal = (wish) => parseFloat(wish.amount || wish.price) || 0;
+const roundMoney = (value) => Math.round(value * 100) / 100;
+const formatChip = (amount, currency) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount);
 
 const Note = () => {
-    const [recipient, setRecipient] = useState({});
     const [event, setEvent] = useState({});
     const [wishes, setWishes] = useState([]);
     const [thisWish, setThisWish] = useState({});
@@ -33,7 +44,8 @@ const Note = () => {
         payments.forEach((payment) => {
             wishes.forEach((wish, idx) => {
                 if (payment.giftId === wish._id) {
-                    updatedWishes[idx] = { ...wish, paid: wish.paid + payment.amount };
+                    // Add to the running total; wishAmount is the contribution in the wish's currency
+                    updatedWishes[idx] = { ...updatedWishes[idx], paid: updatedWishes[idx].paid + payment.wishAmount };
                 }
             });
         });
@@ -54,16 +66,6 @@ const Note = () => {
         }
     };
 
-    const getRecipientAccount = async (sub) => {
-        try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_REGISTRY_URL}/api/getAccountForThisUser/${sub}||"`);
-            const { data } = await res.json();
-            setRecipient(data);
-        } catch (error) {
-            console.error('Error getting recipient account id:', error);
-        }
-    };
-
     const getWishesData = async (eventId) => {
         const res = await fetch(`${process.env.NEXT_PUBLIC_REGISTRY_URL}/api/getNotesBy/${eventId}`);
         const { noteData } = await res.json();
@@ -76,7 +78,6 @@ const Note = () => {
         const res = await fetch(`${process.env.NEXT_PUBLIC_REGISTRY_URL}/api/getEventBy/${name}`);
         const { eventData } = await res.json();
         setEvent(eventData);
-        getRecipientAccount(eventData.user);
         getWishesData(eventData._id);
     };
 
@@ -85,7 +86,12 @@ const Note = () => {
         getEventData(eventName);
     }, [router]);
 
-    const handleNextStep = () => setCurrentStep((s) => s + 1);
+    const handleNextStep = () => {
+        // A fresh key each time the sender reaches payment: they may have gone back and
+        // changed the amount or currency, and Stripe rejects a reused key with new details
+        if (currentStep === 2) setIntentKey(`${thisWish._id}-${Date.now()}`);
+        setCurrentStep((s) => s + 1);
+    };
     const handlePrevStep = () => setCurrentStep((s) => s - 1);
 
     const handleClosePayment = () => {
@@ -95,15 +101,14 @@ const Note = () => {
     };
 
     const pct = (wish) => {
-        if (!wish.price || wish.price === 0) return 0;
-        return Math.min(100, Math.round((wish.paid / wish.price) * 100));
+        const goal = wishGoal(wish);
+        if (goal === 0) return 0;
+        return Math.min(100, Math.round(((wish.paid || 0) / goal) * 100));
     };
 
     const fmtAmount = (wish) => {
-        const cur = wish.currency || 'USD';
-        const paid = wish.paid || 0;
-        const total = wish.amount || wish.price;
-        return `${paid} ${cur} of ${total} ${cur}`;
+        const cur = wishCurrency(wish);
+        return `${roundMoney(wish.paid || 0)} ${cur} of ${wishGoal(wish)} ${cur}`;
     };
 
     // ── Step dots ──────────────────────────────────────────────────
@@ -114,6 +119,9 @@ const Note = () => {
             ))}
         </div>
     );
+
+    // Only flag the minimum once they've typed something
+    const belowMinimum = formData.amount !== '' && !(parseFloat(formData.amount) >= MIN_GIFT[formData.currency]);
 
     // ── Step 1: Amount ─────────────────────────────────────────────
     const renderStep1 = () => (
@@ -161,7 +169,7 @@ const Note = () => {
                             value={formData.currency}
                             onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
                         >
-                            {['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY'].map((c) => (
+                            {CURRENCIES.map((c) => (
                                 <option key={c} value={c}>{c}</option>
                             ))}
                         </select>
@@ -171,23 +179,26 @@ const Note = () => {
                             value={formData.amount}
                             onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                             placeholder="0"
-                            min="0"
+                            min={MIN_GIFT[formData.currency]}
                             step="1"
                         />
                     </div>
+                    <span style={{ fontSize: 12, color: belowMinimum ? '#ef4444' : 'var(--text-secondary, #71717A)' }}>
+                        Minimum gift {formatChip(MIN_GIFT[formData.currency], formData.currency)}
+                    </span>
                 </div>
 
                 {/* Quick select */}
                 <div className="sender-field">
                     <label className="sender-label">Quick select</label>
                     <div className="sender-quick-chips">
-                        {QUICK_AMOUNTS.map((amt) => (
+                        {(QUICK_AMOUNTS[formData.currency] || DEFAULT_QUICK_AMOUNTS).map((amt) => (
                             <button
                                 key={amt}
                                 className={`sender-chip${Number(formData.amount) === amt ? ' selected' : ''}`}
                                 onClick={() => setFormData({ ...formData, amount: String(amt) })}
                             >
-                                ${amt}
+                                {formatChip(amt, formData.currency)}
                             </button>
                         ))}
                     </div>
@@ -199,7 +210,7 @@ const Note = () => {
                 <button
                     className="sender-btn-large"
                     onClick={handleNextStep}
-                    disabled={!formData.name || !formData.amount}
+                    disabled={!formData.name || !(parseFloat(formData.amount) >= MIN_GIFT[formData.currency])}
                 >
                     Continue to Message
                 </button>
@@ -257,6 +268,7 @@ const Note = () => {
                             value={formData.description}
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                             placeholder="Write something thoughtful..."
+                            maxLength={500}
                         />
                     )}
                 </div>
@@ -329,13 +341,10 @@ const Note = () => {
                 {/* Stripe payment form */}
                 <div>
                     <GiftPaymentForm
-                        recipientId={recipient.stripeAccountId}
                         giftAmount={formData.amount}
                         giftCurrency={formData.currency}
                         eventName={eventName}
                         giftId={thisWish._id}
-                        eventId={event._id}
-                        getPaymentsData={getPaymentsData}
                         senderName={formData.name}
                         description={formData.description}
                         cardHTML={formData.cardHTML}
@@ -414,7 +423,9 @@ const Note = () => {
                                             className="sender-btn-primary"
                                             onClick={() => {
                                                 setThisWish(wish);
-                                                setIntentKey(`${wish._id}-${Date.now()}`);
+                                                // Start in the wish's currency so contributions match its goal
+                                                const cur = wishCurrency(wish);
+                                                setFormData((f) => ({ ...f, currency: CURRENCIES.includes(cur) ? cur : 'USD' }));
                                             }}
                                         >
                                             Contribute
